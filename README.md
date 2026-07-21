@@ -12,7 +12,7 @@
 
 <br>
 
-> **Acesso rápido:** [Visite o Portfólio Online: https://diegomatheuss.github.io/Portfolio/](#)
+> **Acesso rápido:** [Visite o Portfólio Online](https://diegomatheuss.github.io/Portfolio)
 
 ## Sobre o Projeto
 
