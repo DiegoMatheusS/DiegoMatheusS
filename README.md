@@ -32,10 +32,3 @@ Este projeto é um portfólio pessoal estilo *Single Page Application* (SPA) des
 *   `/css/styleNovo.css` - Variáveis de cores (cyan/purple), animações, flexbox e media queries.
 *   `/js/script.js` - Lógica de troca de abas e motor de renderização do Canvas (Partículas).
 
-##  Como executar localmente
-
-Como o projeto utiliza tecnologias front-end puras, não é necessário instalar dependências pesadas.
-
-1. Faça o clone deste repositório:
-   ```bash
-   git clone [https://github.com/DiegoMatheusS/nome-do-repositorio.git](https://github.com/DiegoMatheusS/nome-do-repositorio.git)
