@@ -1,34 +1,37 @@
-<div align="center">
-  
-  # DM://SYS - Portfólio Cyberpunk
-  
-  **Um portfólio pessoal interativo, futurista e focado em imersão visual.**
-  
-  ![HTML5](https://img.shields.io/badge/HTML5-E34F26?style=for-the-badge&logo=html5&logoColor=white)
-  ![CSS3](https://img.shields.io/badge/CSS3-1572B6?style=for-the-badge&logo=css3&logoColor=white)
-  ![JavaScript](https://img.shields.io/badge/JavaScript-F7DF1E?style=for-the-badge&logo=javascript&logoColor=black)
+<h1 align="center">Olá, eu sou o Diego Matheus </h1>
 
-</div>
+<p align="center">
+  <img src="https://komarev.com/ghpvc/?username=DiegoMatheusS&color=blue&style=flat-square&label=Profile+views" alt="Profile views" />
+</p>
+
+---
+
+### Sobre mim
+
+* Desenvolvedor focado na construção estrutural e visual de aplicações web interativas
+* Estudante na área da Computação e Técnico em Desenvolvimento de Sistemas (ETEC Horácio Augusto)
+* Formado também como Técnico em Administração
+* Entusiasta de hardware: montagem, refrigeração e otimização de performance para PCs
+* Atualmente atuo como Faturista na Manchester Chemical
+* Conheça meu [Portfólio Cyberpunk](COLOQUE_AQUI_O_LINK_DO_SEU_SITE)
+* Como me encontrar: [LinkedIn](https://www.linkedin.com/in/diego-matheus-087953255/) | dms.diego.2019@gmail.com
 
 <br>
 
-> **Acesso rápido:** [Visite o Portfólio Online](https://diegomatheuss.github.io/Portfolio)
+### Tecnologias, Linguagens & Ferramentas
 
-## Sobre o Projeto
-
-Este projeto é um portfólio pessoal estilo *Single Page Application* (SPA) desenvolvido com HTML, CSS e JavaScript puro (Vanilla). O design foi inspirado em interfaces HUD (Head-Up Display) e temas cyberpunk, utilizando efeitos neon, textos intermitentes (glitch) e uma rede de partículas dinâmicas no fundo.
-
-###  Funcionalidades Principais
-
-*   **Menu Lateral HUD:** Navegação dinâmica entre seções sem recarregar a página, controlada por JavaScript.
-*   **Partículas Interativas:** Fundo animado utilizando a `Canvas API` do JavaScript puro, gerando constelações de dados que se conectam por proximidade.
-*   **Design Responsivo:** Layout adaptável com `Flexbox` e `CSS Grid`, funcionando perfeitamente em computadores e dispositivos móveis.
-*   **Cards Holográficos:** Efeitos 3D em hover nos cards de projetos (como o Ecocria).
-*   **Código Modular:** Estrutura organizada com separação clara de responsabilidades (HTML, CSS e JS em arquivos distintos).
-
-##  Estrutura do Sistema
-
-*   `/index.html` - Estrutura principal e layout semântico.
-*   `/css/styleNovo.css` - Variáveis de cores (cyan/purple), animações, flexbox e media queries.
-*   `/js/script.js` - Lógica de troca de abas e motor de renderização do Canvas (Partículas).
-
+<p align="left">
+  <!-- Front-End -->
+  <img src="https://img.shields.io/badge/HTML5-E34F26?style=for-the-badge&logo=html5&logoColor=white" alt="HTML5" />
+  <img src="https://img.shields.io/badge/CSS3-1572B6?style=for-the-badge&logo=css3&logoColor=white" alt="CSS3" />
+  <img src="https://img.shields.io/badge/JavaScript-323330?style=for-the-badge&logo=javascript&logoColor=F7DF1E" alt="JavaScript" />
+  
+  <!-- Back-End & APIs -->
+  <img src="https://img.shields.io/badge/C%23-239120?style=for-the-badge&logo=c-sharp&logoColor=white" alt="C#" />
+  <img src="https://img.shields.io/badge/.NET-5C2D91?style=for-the-badge&logo=.net&logoColor=white" alt=".NET" />
+  <img src="https://img.shields.io/badge/Swagger-85EA2D?style=for-the-badge&logo=Swagger&logoColor=black" alt="Swagger" />
+  
+  <!-- Ferramentas -->
+  <img src="https://img.shields.io/badge/GIT-E44C30?style=for-the-badge&logo=git&logoColor=white" alt="Git" />
+  <img src="https://img.shields.io/badge/VS_Code-0078D4?style=for-the-badge&logo=visual%20studio%20code&logoColor=white" alt="VS Code" />
+</p>
