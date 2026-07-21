@@ -16,7 +16,7 @@
 * Formação Técnico em Desenvolvimento de Sistemas, Técnico em Administração e Contabilidade - Etec
 * Entusiasta de hardware e software: montagem, criação e desenvolvimento de softwares
 * Atualmente atuo como Faturista na Manchester Chemical
-* Conheça meu [Portfólio](https://diegomatheuss.github.io/Portfolio/)
+* Conheça meu [Portfólio](https://diegomatheuss.github.io/DiegoMatheusS/)
 * Como me encontrar: [LinkedIn](https://www.linkedin.com/in/diego-matheus-087953255/) | dms.diego.2019@gmail.com
 
 <br><br>
