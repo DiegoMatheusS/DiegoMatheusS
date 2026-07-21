@@ -6,17 +6,20 @@
 
 ---
 
+<img align="right" width="400" src="https://i.imgur.com/MTrKLej.gif" alt="Esquilo Programador Animado" />
+
 ### Sobre mim
 
 * Desenvolvedor focado na construção estrutural e visual de aplicações web interativas
-* Estudante na área da Computação e Técnico em Desenvolvimento de Sistemas (ETEC Horácio Augusto)
-* Formado também como Técnico em Administração
-* Entusiasta de hardware: montagem, refrigeração e otimização de performance para PCs
+* Estudante Graduação em Ciência da Computação - Unip
+* Formação Técnico em Desenvolvimento de Sistemas, Técnico em Administração e Contabilidade - Etec
+* Entusiasta de hardware e software: montagem, criação e desenvolvimento de softwares
 * Atualmente atuo como Faturista na Manchester Chemical
-* Conheça meu [Portfólio Cyberpunk](COLOQUE_AQUI_O_LINK_DO_SEU_SITE)
+* Conheça meu [Portfólio](https://diegomatheuss.github.io/Portfolio/)
 * Como me encontrar: [LinkedIn](https://www.linkedin.com/in/diego-matheus-087953255/) | dms.diego.2019@gmail.com
 
-<br>
+<br><br>
+<br><br>
 
 ### Tecnologias, Linguagens & Ferramentas
 
