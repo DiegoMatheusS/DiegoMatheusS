@@ -10,6 +10,7 @@
 
 ### Sobre mim
 
+
 * Desenvolvedor focado na construção estrutural e visual de aplicações web interativas
 * Estudante Graduação em Ciência da Computação - Unip
 * Formação Técnico em Desenvolvimento de Sistemas, Técnico em Administração e Contabilidade - Etec
