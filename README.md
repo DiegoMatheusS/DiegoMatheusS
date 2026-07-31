@@ -11,7 +11,7 @@
 ### Sobre mim
 
 
-* Desenvolvedor focado na construção estrutural e visual de aplicações web interativas
+* Em transição de carreira, buscando minha primeira oportunidade como Desenvolvedor de Software
 * Estudante Graduação em Ciência da Computação - Unip
 * Formação Técnico em Desenvolvimento de Sistemas, Técnico em Administração e Contabilidade - Etec
 * Entusiasta de hardware e software: montagem, criação e desenvolvimento de softwares
