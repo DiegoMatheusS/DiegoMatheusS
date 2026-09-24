@@ -3,187 +3,276 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Portfolio_Diego Matheus</title>
-    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&family=Rajdhani:wght@300;500;700&display=swap" rel="stylesheet">
+    <meta name="theme-color" content="#050505">
+    <meta name="description" content="Portfólio de Diego Matheus — desenvolvimento, tecnologia, hardware e projetos digitais.">
+    <title>Diego Matheus | Portfólio</title>
+
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=Manrope:wght@400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <link rel="stylesheet" href="../DiegoMatheusS/css/style.css">
-    <script src="../DiegoMatheusS/js/script.js" defer></script>
-   
+    <link rel="stylesheet" href="css/style.css">
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/build/three.min.js" defer></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/shaders/CopyShader.js" defer></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/shaders/LuminosityHighPassShader.js" defer></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/postprocessing/EffectComposer.js" defer></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/postprocessing/ShaderPass.js" defer></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/postprocessing/RenderPass.js" defer></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/postprocessing/UnrealBloomPass.js" defer></script>
+<script src="js/sphere-test.js" defer></script>
+<script src="js/script.js" defer></script>
 </head>
 <body>
+    <div class="noise" aria-hidden="true"></div>
+    <div class="cursor-glow" aria-hidden="true"></div>
 
-    <canvas id="particles-js"></canvas>
+    <header class="site-header">
+        <a class="brand" href="#inicio" aria-label="Ir para o início">
+            <span class="brand-mark">DM</span>
+            <span class="brand-dot"></span>
+        </a>
 
-    <div id="main-container">
-        <nav class="hud-sidebar">
-            <div class="brand">DM://CC</div>
-            <div class="nav-menu">
-                <button class="nav-btn active" data-target="home">
-                    <i class="fas fa-microchip"></i>
-                    <span>Início</span>
-                </button>
-                <button class="nav-btn" data-target="about">
-                    <i class="fas fa-user-astronaut"></i>
-                    <span>Sobre</span>
-                </button>
-                <button class="nav-btn" data-target="experience">
-                    <i class="fas fa-code-branch"></i>
-                    <span>Jornada</span>
-                </button>
-                <button class="nav-btn" data-target="projects">
-                    <i class="fas fa-satellite-dish"></i>
-                    <span>Projetos</span>
-                </button>
-            </div>
+        <nav class="top-nav" aria-label="Navegação principal">
+            <a href="#trajetoria">Trajetória</a>
+            <a href="#experiencia">Experiência</a>
+            <a href="#projetos">Projetos</a>
+            <a href="#contato">Contato</a>
         </nav>
 
-        <main class="content-area">
-            
-            <section id="home" class="section active">
-                <div class="hero-content" style="height: 100%; display: flex; flex-direction: column; justify-content: center;">
-                    <h3>Inicializando sistema...</h3>
-                    <h1 class="glitch">Diego Matheus</h1>
-                    <h2>// Estudante_Ciência da Computção</h2>
-                    <p style="max-width: 600px; font-size: 1.2rem; margin-bottom: 2rem;">
-                        Transformando café em código e hardware em performance. Apaixonado por criar soluções digitais e otimizar máquinas.
-                    </p>
-                    <div style="display: flex; gap: 1rem;">
-                        <button class="contact-btn nav-link-internal" data-target="projects">ACESSAR PROJETOS</button>
-                        <a href="https://github.com/DiegoMatheusS" target="_blank" class="contact-btn" style="border-color: var(--neon-purple); color: var(--neon-purple);">
-                            <i class="fab fa-github"></i> GITHUB
-                        </a>
+        <a class="header-link" href="https://github.com/DiegoMatheusS" target="_blank" rel="noreferrer">
+            GitHub <i class="fa-solid fa-arrow-up-right-from-square"></i>
+        </a>
+    </header>
+
+    <main>
+        <section class="hero" id="inicio">
+            <div class="hero-visual reveal sphere-test-visual" aria-label="Teste da Sphere interativa">
+                <div class="sphere-test-shell" id="sphere-test-shell">
+                    <div class="sphere-test-canvas" id="sphere-test-canvas" aria-label="Esfera amarela 3D interativa"></div>
+                    <div class="sphere-test-fallback" aria-hidden="true">
+                        <div class="fallback-face-eye eye-a"><span></span></div>
+                        <div class="fallback-face-eye eye-b"><span></span></div>
+                        <div class="fallback-face-mouth"></div>
+                    </div>
+                    <div class="sphere-test-label">
+                        <span>LED Sphere</span>
+                        <strong>arraste a esfera</strong>
                     </div>
                 </div>
-            </section>
+            </div>
 
-            <section id="about" class="section">
-                <h2 class="section-title">Dados do Usuário</h2>
-                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(400px, 1fr)); gap: 3rem;">
-                    
-                    <div class="cyber-panel">
-                        <h3><i class="fas fa-terminal"></i> Perfil</h3>
-                        <p style="margin-top: 1rem; line-height: 1.6;">
-                            Estudante em Ciência da Computação, nascido em São Paulo. Minha paixão se divide entre a lógica da programação e o poder do hardware e jogos. Tenho facilidade em resolver problemas técnicos complexos e estou sempre buscando a próxima tecnologia para dominar.
+
+            <div class="hero-copy reveal">
+                <p class="eyebrow"><span></span> Portfólio • tecnologia + criatividade</p>
+                <h1>
+                    Eu construo coisas<br>
+                    <em>que precisam funcionar.</em>
+                </h1>
+                <p class="hero-description">
+                    Sou Diego Matheus. Minha trajetória passa por desenvolvimento, hardware, suporte e projetos próprios — sempre juntando lógica, curiosidade e vontade de transformar problema em solução.
+                </p>
+
+                <div class="hero-actions">
+                    <a class="btn btn-primary" href="#trajetoria">Conhecer minha trajetória <i class="fa-solid fa-arrow-down"></i></a>
+                    <a class="btn btn-ghost" id="projects-trigger" href="#projetos">Ver projetos</a>
+                </div>
+            </div>
+
+            <a class="scroll-cue" href="#trajetoria">
+                <span>role para explorar</span>
+                <i class="fa-solid fa-arrow-down-long"></i>
+            </a>
+        </section>
+
+        <section class="brace-story" id="trajetoria">
+            <div class="brace-track">
+                <div class="brace-stage">
+                    <div class="brace brace-left" aria-hidden="true">{</div>
+                    <article class="story-card">
+                        <span class="story-kicker">minha trajetória</span>
+                        <h2>Nem tudo começou com código.</h2>
+                        <p>
+                            Minha formação também passou por Administração e Contabilidade. Depois, o desenvolvimento de sistemas e a Ciência da Computação transformaram uma curiosidade antiga por tecnologia em algo que eu pudesse construir, testar e colocar no mundo.
                         </p>
-                        <h4 style="margin-top: 2rem; color: var(--neon-cyan);">Formação Acadêmica //</h4>
-                        <ul style="list-style: none; margin-top: 1rem;">
-							 <li style="margin-bottom: 10px;"><i class="fas fa-check-square" style="color:var(--neon-purple)"></i> Estudante de Ciência da Computação (Unip, 2026)</li>
-                            <li style="margin-bottom: 10px;"><i class="fas fa-check-square" style="color:var(--neon-purple)"></i> Téc. Desenvolvimento de Sistemas (ETEC Horácio Augusto, 2024)</li>
-                            <li><i class="fas fa-check-square" style="color:var(--neon-purple)"></i> Téc. Contabilidade & Administração (2022, 2023)</li>
-                        </ul>
-                    </div>
-
-                    <div>
-                        <h3><i class="fas fa-tools"></i> Habilidades Técnicas</h3>
-                        <div class="skills-grid">
-                            <div class="skill-item"><i class="fab fa-html5"></i><br>HTML5 / CSS3</div>
-                            <div class="skill-item"><i class="fab fa-js"></i><br>JavaScript</div>
-                            <div class="skill-item"><i class="fas fa-memory"></i><br>Hardware Support</div>
-                            <div class="skill-item"><i class="fas fa-network-wired"></i><br>Redes</div>
-                            <div class="skill-item"><i class="fas fa-users"></i><br>Trabalho em Equipe</div>
-                            <div class="skill-item"><i class="fas fa-cogs"></i><br>Resolução de Problemas</div>
+                        <p>
+                            Trabalho, estudo, projetos pessoais e problemas reais foram se misturando. Hoje gosto justamente dessa combinação: entender o negócio, olhar para a parte técnica e criar uma solução que faça sentido de verdade.
+                        </p>
+                        <div class="story-tags" aria-label="Áreas da trajetória">
+                            <span>Desenvolvimento</span>
+                            <span>Hardware</span>
+                            <span>Suporte</span>
+                            <span>Produto</span>
                         </div>
-                    </div>
+                    </article>
+                    <div class="brace brace-right" aria-hidden="true">}</div>
                 </div>
-            </section>
+            </div>
+        </section>
 
-            <section id="experience" class="section">
-                <h2 class="section-title">Log de Atividades</h2>
-                <div style="max-width: 800px;">
-                    <div class="timeline-box" style="border-color: var(--text-secondary);">
-                        <span class="timeline-date" style="color: var(--text-secondary);">[ ATUAL ]</span>
-                        <h3>Manchester Chemical | Faturista</h3>
-                        <p>Responsável por rotinas de faturamento, elaboração de relatórios analíticos e suporte administrativo.</p>
-                    </div>
-					
-					<div class="timeline-box" style="border-color: var(--text-secondary);">
-                        <span class="timeline-date" style="color: var(--text-secondary);">[ FREELANCER ]</span>
-                        <h3>Pastelaria do Juca (Paulista)</h3>
-                        <p>Revesando em operador de caixa, fritura dos pastéis e limpeza do ambiente</p>
-                    </div>
-					
-					<div class="timeline-box" style="border-color: var(--text-secondary);">
-                        <span class="timeline-date" style="color: var(--text-secondary);">[ EXTRA ]</span>
-                        <h3>Motoboy Delivery</h3>
-                        <p>Renda extra nos fins de semana</p>
-                    </div>
-					
-					<div class="timeline-box" style="border-color: var(--text-secondary);">
-                        <span class="timeline-date" style="color: var(--text-secondary);">[ INÍCIO ]</span>
-                        <h3>Manchester Chemical | Jovem Aprendiz</h3>
-                        <p>Desenvolvimento de habilidades organizacionais e comunicação no ambiente corporativo.</p>
-                    </div>
+        <section class="section-shell journey" id="experiencia">
+            <div class="section-heading reveal">
+                <span class="section-index">01</span>
+                <div>
+                    <p class="eyebrow">Experiência</p>
+                    <h2>Uma trajetória construída em camadas.</h2>
                 </div>
-            </section>
+            </div>
 
-            <section id="projects" class="section">
-                <h2 class="section-title">Repositório de Projetos</h2>
-                <div class="projects-container">
-                    <div class="project-card" style="background-image: url('https://via.placeholder.com/400x300/050a14/00fff2?text=Portfolio+Code'); background-size: cover;">
-						<a href="http://www.ecocria.somee.com/"style=" text-decoration: none;">
-							<div class="project-content">
-								<img src="../DiegoMatheusS/img/topico1.jpg" width=100% height=110%>
-								<h3 style="color: var(--neon-purple);">Ecocria</h3>
-								<p style="color: var(--text-primary);">Projeto MVC e API desenvolvidos com .NET e documentação em Swagger. Hospedado no Somee.</p>
-							</div>
-						</a>
+            <div class="timeline">
+                <article class="timeline-item reveal">
+                    <div class="timeline-marker"><span>Atual</span></div>
+                    <div class="timeline-content">
+                        <p class="timeline-meta">Manchester Chemical</p>
+                        <h3>Faturista</h3>
+                        <p>Rotinas de faturamento, relatórios analíticos e suporte administrativo, conectando organização, dados e operação.</p>
                     </div>
-                     <div class="project-card" style="background-image: url('https://via.placeholder.com/400x300/050a14/bd00ff?text=Sistema+X'); background-size: cover;">
-                        <a href="https://github.com/DiegoMatheusS/API_Investimento" style=" text-decoration: none;">
-							<div class="project-content">
-								<img src="../DiegoMatheusS/img/topico2.jpg" width=80% height=110%px>
-								<h3 style="color: var(--neon-purple)">Projeto API Investimento</h3>
-								<p style="color: var(--text-primary);">CRUD de seus investimentos na palma da mão</p>
-							</div>
-						</a>
-                    </div>
-                   <div class="project-card" style="background-image: url('https://via.placeholder.com/400x300/050a14/00fff2?text=Hardware+Setup'); background-size: cover;">
-				   <a href="https://2026ecodrop.github.io/EcoDrop/index.html" style=" text-decoration: none;">
-                            <div class="project-content">
-							    <img src="../DiegoMatheusS/img/ecodrop.jpg" width=100% height=110%>
-							    <h3 style="color: var(--neon-purple)">EcoDrop</h3>
-							    <p style="color: var(--text-primary);">Projeto em HTML, CSS e JavaScript</p>
-                            </div>
-						</a>
-                    </div>
-                    <div class="project-card" style="background-image: url('https://via.placeholder.com/400x300/050a14/00fff2?text=Hardware+Setup'); background-size: cover;">
-				        <a href="https://procurandodanfe.com.br/" style=" text-decoration: none;">
-                            <div class="project-content">
-							    <img src="../DiegoMatheusS/img/BaixaNfe.jpg" width=100% height=110%>
-							    <h3 style="color: var(--neon-purple)">BaixaNFe</h3>
-							    <p style="color: var(--text-primary);">Site desenvolvido para imprimir DANFE apartir de xmls, word,  .txt ou chave de acesso</p>
-                            </div>
-						</a>
-                    </div>
+                </article>
 
+                <article class="timeline-item reveal">
+                    <div class="timeline-marker"><span>Freela</span></div>
+                    <div class="timeline-content">
+                        <p class="timeline-meta">Pastelaria do Juca • Paulista</p>
+                        <h3>Operação e atendimento</h3>
+                        <p>Atuação direta no caixa, produção e organização do ambiente — experiência prática de ritmo, responsabilidade e atendimento.</p>
+                    </div>
+                </article>
+
+                <article class="timeline-item reveal">
+                    <div class="timeline-marker"><span>Extra</span></div>
+                    <div class="timeline-content">
+                        <p class="timeline-meta">Delivery</p>
+                        <h3>Motoboy</h3>
+                        <p>Trabalho aos fins de semana, reforçando autonomia, disciplina e gestão de tempo.</p>
+                    </div>
+                </article>
+
+                <article class="timeline-item reveal">
+                    <div class="timeline-marker"><span>Início</span></div>
+                    <div class="timeline-content">
+                        <p class="timeline-meta">Manchester Chemical</p>
+                        <h3>Jovem Aprendiz</h3>
+                        <p>Onde comecei a desenvolver organização, comunicação e visão de ambiente corporativo.</p>
+                    </div>
+                </article>
+            </div>
+        </section>
+
+        <section class="section-shell skills-section" id="habilidades">
+            <div class="section-heading reveal">
+                <span class="section-index">02</span>
+                <div>
+                    <p class="eyebrow">Habilidades</p>
+                    <h2>Do código ao hardware.</h2>
                 </div>
+            </div>
 
-                <div class="cyber-panel" style="margin-top: 4rem; text-align: center;">
-                    <h2><i class="fas fa-broadcast-tower"></i> Inicializar Conexão</h2>
-                    <p>Pronto para colaborar em novos desafios.</p>
-                    <div class="contact-links" style="justify-content: center;">
-                        <a href="https://mail.google.com/mail/?view=cm&fs=1&to=dms.diego.2019@gmail.com" target="_blank" class="contact-btn"> <i class="fas fa-envelope"></i> Email </a>
-                        <a href="https://github.com/DiegoMatheusS" target="_blank" class="contact-btn" style="border-color: #fff; color: #fff;"><i class="fab fa-github"></i> GitHub</a>
-                        <a href="https://wa.me/5511960570645" target="_blank" class="contact-btn" style="border-color: #25D366; color: #25D366;"><i class="fab fa-whatsapp"></i> Whatsapp</a>
-                    </div>
-					<div class="custom-linkedin-badge">
-    <div class="badge-header">
-        <i class="fab fa-linkedin"></i>
-        <span>LinkedIn</span>
-    </div>
-    <div class="badge-content">
-      
-        <img src="../DiegoMatheusS/img/foto-link.png" alt="Diego Matheus" class="badge-pic">
-        <h3 class="badge-name">Diego Matheus</h3>
-        <p class="badge-title">Estudante de Ciência da Computação | Suporte de TI | Desenvolvimento BackEnd</p>
-        <p class="badge-company">Manchester Chemical • Universidade Paulista</p>
-        <a href="https://www.linkedin.com/in/diego-matheus-087953255/" target="_blank" class="badge-btn">Ver perfil</a>
-    </div>
-</div>
-              
+            <div class="skills-grid">
+                <article class="skill-card reveal tilt-card">
+                    <span class="skill-number">01</span>
+                    <i class="fa-solid fa-code"></i>
+                    <h3>Desenvolvimento</h3>
+                    <p>HTML, CSS, JavaScript, APIs, lógica de sistemas e construção de soluções web.</p>
+                </article>
+                <article class="skill-card reveal tilt-card">
+                    <span class="skill-number">02</span>
+                    <i class="fa-solid fa-server"></i>
+                    <h3>Back-end</h3>
+                    <p>Experiência com .NET, estruturação de APIs e integração entre aplicações.</p>
+                </article>
+                <article class="skill-card reveal tilt-card">
+                    <span class="skill-number">03</span>
+                    <i class="fa-solid fa-microchip"></i>
+                    <h3>Hardware</h3>
+                    <p>Montagem, diagnóstico, compatibilidade e busca por desempenho e estabilidade.</p>
+                </article>
+                <article class="skill-card reveal tilt-card">
+                    <span class="skill-number">04</span>
+                    <i class="fa-solid fa-screwdriver-wrench"></i>
+                    <h3>Resolução</h3>
+                    <p>Gosto de investigar falhas, entender causa raiz e transformar problemas confusos em etapas claras.</p>
+                </article>
+            </div>
+        </section>
+
+        <section class="section-shell projects-section" id="projetos">
+            <div class="section-heading reveal">
+                <span class="section-index">03</span>
+                <div>
+                    <p class="eyebrow">Projetos</p>
+                    <h2>Ideias que saíram da tela em branco.</h2>
                 </div>
-            </section>
-        </main>
-    </div>
+            </div>
+
+            <div class="projects-grid">
+                <a class="project-card reveal tilt-card" href="http://www.ecocria.somee.com/" target="_blank" rel="noreferrer">
+                    <div class="project-image">
+                        <img src="https://raw.githubusercontent.com/DiegoMatheusS/DiegoMatheusS/main/img/topico1.jpg" alt="Projeto Ecocria" loading="lazy">
+                    </div>
+                    <div class="project-info">
+                        <span>MVC • API • .NET</span>
+                        <h3>Ecocria</h3>
+                        <p>Projeto MVC com API, documentação em Swagger e publicação web.</p>
+                        <i class="fa-solid fa-arrow-up-right-from-square"></i>
+                    </div>
+                </a>
+
+                <a class="project-card reveal tilt-card" href="https://github.com/DiegoMatheusS/API_Investimento" target="_blank" rel="noreferrer">
+                    <div class="project-image">
+                        <img src="https://raw.githubusercontent.com/DiegoMatheusS/DiegoMatheusS/main/img/topico2.jpg" alt="Projeto API Investimento" loading="lazy">
+                    </div>
+                    <div class="project-info">
+                        <span>API • CRUD</span>
+                        <h3>API Investimento</h3>
+                        <p>CRUD para organizar e acompanhar investimentos.</p>
+                        <i class="fa-solid fa-arrow-up-right-from-square"></i>
+                    </div>
+                </a>
+
+                <a class="project-card reveal tilt-card" href="https://2026ecodrop.github.io/EcoDrop/index.html" target="_blank" rel="noreferrer">
+                    <div class="project-image">
+                        <img src="https://raw.githubusercontent.com/DiegoMatheusS/DiegoMatheusS/main/img/ecodrop.jpg" alt="Projeto EcoDrop" loading="lazy">
+                    </div>
+                    <div class="project-info">
+                        <span>HTML • CSS • JavaScript</span>
+                        <h3>EcoDrop</h3>
+                        <p>Experiência web criada com tecnologias front-end.</p>
+                        <i class="fa-solid fa-arrow-up-right-from-square"></i>
+                    </div>
+                </a>
+
+                <a class="project-card reveal tilt-card" href="https://procurandodanfe.com.br/" target="_blank" rel="noreferrer">
+                    <div class="project-image">
+                        <img src="https://raw.githubusercontent.com/DiegoMatheusS/DiegoMatheusS/main/img/BaixaNfe.jpg" alt="Projeto Procurando DANFE" loading="lazy">
+                    </div>
+                    <div class="project-info">
+                        <span>Produto web • documentos fiscais</span>
+                        <h3>Procurando DANFE</h3>
+                        <p>Ferramenta web para trabalhar com DANFE a partir de arquivos e chaves de acesso.</p>
+                        <i class="fa-solid fa-arrow-up-right-from-square"></i>
+                    </div>
+                </a>
+            </div>
+        </section>
+
+        <section class="contact-section" id="contato">
+            <div class="contact-shell reveal">
+                <p class="eyebrow">04 • Contato</p>
+                <h2>Tem uma ideia?<br><em>Vamos tirar do papel.</em></h2>
+                <p>Aberto a projetos, tecnologia, desenvolvimento e boas conversas sobre como construir algo melhor.</p>
+
+                <div class="contact-actions">
+                    <a class="btn btn-primary" href="mailto:dms.diego.2019@gmail.com"><i class="fa-regular fa-envelope"></i> E-mail</a>
+                    <a class="btn btn-ghost" href="https://github.com/DiegoMatheusS" target="_blank" rel="noreferrer"><i class="fa-brands fa-github"></i> GitHub</a>
+                    <a class="btn btn-ghost" href="https://www.linkedin.com/in/diego-matheus-087953255/" target="_blank" rel="noreferrer"><i class="fa-brands fa-linkedin-in"></i> LinkedIn</a>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <footer>
+        <span>Diego Matheus</span>
+        <span>feito com código, curiosidade e algumas tentativas.</span>
+        <a href="#inicio">voltar ao topo ↑</a>
+    </footer>
 </body>
 </html>
