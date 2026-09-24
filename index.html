@@ -12,13 +12,6 @@
     <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=Manrope:wght@400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link rel="stylesheet" href="css/style.css">
-<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/build/three.min.js" defer></script>
-<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/shaders/CopyShader.js" defer></script>
-<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/shaders/LuminosityHighPassShader.js" defer></script>
-<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/postprocessing/EffectComposer.js" defer></script>
-<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/postprocessing/ShaderPass.js" defer></script>
-<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/postprocessing/RenderPass.js" defer></script>
-<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/postprocessing/UnrealBloomPass.js" defer></script>
 <script src="js/sphere-test.js" defer></script>
 <script src="js/script.js" defer></script>
 </head>
@@ -49,22 +42,23 @@
             <div class="hero-visual reveal sphere-test-visual" aria-label="Teste da Sphere interativa">
                 <div class="sphere-test-shell" id="sphere-test-shell">
                     <div class="sphere-test-canvas" id="sphere-test-canvas" aria-label="Esfera amarela 3D interativa"></div>
-                    <div class="sphere-test-fallback" aria-hidden="true">
-                        <div class="fallback-face-eye eye-a"><span></span></div>
-                        <div class="fallback-face-eye eye-b"><span></span></div>
-                        <div class="fallback-face-mouth"></div>
+                    <div class="sphere-scarf" id="sphere-scarf" aria-hidden="true">
+                        <span class="scarf-loop"></span>
+                        <span class="scarf-knot"></span>
+                        <span class="scarf-tail scarf-tail-left"></span>
+                        <span class="scarf-tail scarf-tail-right"></span>
                     </div>
-                    <div class="sphere-test-label">
-                        <span>LED Sphere</span>
-                        <strong>arraste a esfera</strong>
+                    <div class="sphere-accessory" id="sphere-accessory" aria-hidden="true">
+                        <span class="accessory-part part-a"></span>
+                        <span class="accessory-part part-b"></span>
+                        <span class="accessory-part part-c"></span>
+                        <span class="accessory-part part-d"></span>
                     </div>
                 </div>
             </div>
 
 
-            <div class="hero-copy reveal">
-                <p class="eyebrow"><span></span> Portfólio • tecnologia + criatividade</p>
-                <h1>
+            <div class="hero-copy reveal">                <h1>
                     Eu construo coisas<br>
                     <em>que precisam funcionar.</em>
                 </h1>
@@ -84,28 +78,66 @@
             </a>
         </section>
 
-        <section class="brace-story" id="trajetoria">
-            <div class="brace-track">
-                <div class="brace-stage">
-                    <div class="brace brace-left" aria-hidden="true">{</div>
-                    <article class="story-card">
-                        <span class="story-kicker">minha trajetória</span>
-                        <h2>Nem tudo começou com código.</h2>
-                        <p>
-                            Minha formação também passou por Administração e Contabilidade. Depois, o desenvolvimento de sistemas e a Ciência da Computação transformaram uma curiosidade antiga por tecnologia em algo que eu pudesse construir, testar e colocar no mundo.
-                        </p>
-                        <p>
-                            Trabalho, estudo, projetos pessoais e problemas reais foram se misturando. Hoje gosto justamente dessa combinação: entender o negócio, olhar para a parte técnica e criar uma solução que faça sentido de verdade.
-                        </p>
-                        <div class="story-tags" aria-label="Áreas da trajetória">
-                            <span>Desenvolvimento</span>
-                            <span>Hardware</span>
-                            <span>Suporte</span>
-                            <span>Produto</span>
-                        </div>
-                    </article>
-                    <div class="brace brace-right" aria-hidden="true">}</div>
-                </div>
+        <section class="trajectory-story" id="trajetoria">
+            <div class="trajectory-heading reveal">
+                <span class="story-kicker">minha trajetória</span>
+                <h2>Minha história aparece conforme você avança.</h2>
+                <p>Role para baixo. Cada etapa entra no momento certo e a seta acompanha o caminho.</p>
+            </div>
+
+            <div class="trajectory-flow" id="trajectory-flow">
+                <svg class="trajectory-path" id="trajectory-path-svg" aria-hidden="true">
+                    <path id="trajectory-zigzag-path" pathLength="1"></path>
+                    <g id="trajectory-arrow" class="trajectory-arrow">
+                        <circle r="13"></circle>
+                        <path d="M -5 -3 L 0 4 L 5 -3"></path>
+                    </g>
+                </svg>
+
+                <article class="trajectory-step" data-step="1">
+                    <span class="trajectory-step-number">01</span>
+                    <div class="trajectory-step-card">
+                        <p class="trajectory-step-kicker">A base</p>
+                        <h3>Administração e Contabilidade</h3>
+                        <p>Antes do código, vieram processos, organização e contato com números. Essa base me ensinou a olhar para o funcionamento real de uma operação.</p>
+                    </div>
+                </article>
+
+                <article class="trajectory-step" data-step="2">
+                    <span class="trajectory-step-number">02</span>
+                    <div class="trajectory-step-card">
+                        <p class="trajectory-step-kicker">A virada</p>
+                        <h3>Desenvolvimento de Sistemas</h3>
+                        <p>A curiosidade por tecnologia virou construção. Passei a transformar ideias em interfaces, lógica, APIs e soluções que realmente podiam ser testadas.</p>
+                    </div>
+                </article>
+
+                <article class="trajectory-step" data-step="3">
+                    <span class="trajectory-step-number">03</span>
+                    <div class="trajectory-step-card">
+                        <p class="trajectory-step-kicker">Aprofundamento</p>
+                        <h3>Ciência da Computação</h3>
+                        <p>A graduação ampliou a visão sobre software, arquitetura, dados e resolução de problemas — indo além de apenas fazer uma tela funcionar.</p>
+                    </div>
+                </article>
+
+                <article class="trajectory-step" data-step="4">
+                    <span class="trajectory-step-number">04</span>
+                    <div class="trajectory-step-card">
+                        <p class="trajectory-step-kicker">Construindo</p>
+                        <h3>Projetos próprios</h3>
+                        <p>Ecocria, API de Investimento, EcoDrop e Procurando DANFE foram colocando essa evolução em prática: produto, código, publicação e melhoria contínua.</p>
+                    </div>
+                </article>
+
+                <article class="trajectory-step" data-step="5">
+                    <span class="trajectory-step-number">05</span>
+                    <div class="trajectory-step-card">
+                        <p class="trajectory-step-kicker">Hoje</p>
+                        <h3>Tecnologia com visão de produto</h3>
+                        <p>Hoje junto desenvolvimento, hardware, suporte e entendimento de negócio para criar soluções úteis, claras e que façam sentido para quem vai usar.</p>
+                    </div>
+                </article>
             </div>
         </section>
 
@@ -119,6 +151,7 @@
             </div>
 
             <div class="timeline">
+
                 <article class="timeline-item reveal">
                     <div class="timeline-marker"><span>Atual</span></div>
                     <div class="timeline-content">
@@ -127,6 +160,17 @@
                         <p>Rotinas de faturamento, relatórios analíticos e suporte administrativo, conectando organização, dados e operação.</p>
                     </div>
                 </article>
+
+
+                <article class="timeline-item reveal">
+                    <div class="timeline-marker"><span>Extra</span></div>
+                    <div class="timeline-content">
+                        <p class="timeline-meta">Delivery</p>
+                        <h3>Motoboy</h3>
+                        <p>Trabalho aos fins de semana, reforçando autonomia, disciplina e gestão de tempo.</p>
+                    </div>
+                </article>
+
 
                 <article class="timeline-item reveal">
                     <div class="timeline-marker"><span>Freela</span></div>
@@ -137,14 +181,6 @@
                     </div>
                 </article>
 
-                <article class="timeline-item reveal">
-                    <div class="timeline-marker"><span>Extra</span></div>
-                    <div class="timeline-content">
-                        <p class="timeline-meta">Delivery</p>
-                        <h3>Motoboy</h3>
-                        <p>Trabalho aos fins de semana, reforçando autonomia, disciplina e gestão de tempo.</p>
-                    </div>
-                </article>
 
                 <article class="timeline-item reveal">
                     <div class="timeline-marker"><span>Início</span></div>

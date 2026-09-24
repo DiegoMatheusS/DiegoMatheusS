@@ -1620,13 +1620,6 @@ footer a {
     z-index: -1;
 }
 
-.sphere-test-canvas,
-.sphere-test-fallback {
-    position: absolute;
-    inset: 0;
-    border-radius: 50%;
-}
-
 .sphere-test-canvas {
     z-index: 2;
 }
@@ -1636,47 +1629,6 @@ footer a {
     height: 100% !important;
     display: block;
     outline: none;
-}
-
-.sphere-test-fallback {
-    z-index: 1;
-    overflow: hidden;
-    background: #ffd12f;
-    box-shadow: inset -18px -22px 36px rgba(139, 100, 0, .10), 0 28px 64px rgba(62, 46, 18, .11);
-    transition: opacity .25s ease;
-}
-
-.sphere-test-shell.is-webgl-ready .sphere-test-fallback {
-    opacity: 0;
-}
-
-.fallback-face-eye {
-    position: absolute;
-    top: 32%;
-    width: 20%;
-    height: 24%;
-    border-radius: 50%;
-    background: #fff;
-}
-.fallback-face-eye.eye-a { left: 23%; }
-.fallback-face-eye.eye-b { right: 23%; }
-.fallback-face-eye span {
-    position: absolute;
-    width: 34%;
-    aspect-ratio: 1;
-    left: 33%;
-    top: 36%;
-    border-radius: 50%;
-    background: #111;
-}
-.fallback-face-mouth {
-    position: absolute;
-    width: 18%;
-    height: 8%;
-    left: 41%;
-    top: 62%;
-    border-bottom: 4px solid #111;
-    border-radius: 0 0 50% 50%;
 }
 
 .sphere-test-label {
@@ -1772,9 +1724,6 @@ footer a {
 .sphere-test-shell.is-dragging {
     cursor: grabbing;
     transition: none !important;
-}
-.sphere-test-shell.is-fallback-only .sphere-test-label span::after {
-    content: ' • modo fallback';
 }
 
 
@@ -1909,15 +1858,6 @@ footer a {
     border-radius: 0;
     filter: saturate(1.08);
 }
-.sphere-test-fallback {
-    inset: 50% auto auto 50%;
-    width: min(34vw, 450px);
-    aspect-ratio: 1;
-    transform: translate(-50%, -50%);
-    border-radius: 50%;
-    background: #ffc900;
-    box-shadow: 0 0 70px rgba(255, 191, 0, .18);
-}
 .sphere-test-label {
     left: 50%;
     bottom: 52px;
@@ -1966,9 +1906,6 @@ footer a {
         max-width: 640px;
         margin-inline: auto;
     }
-    .sphere-test-fallback {
-        width: min(58vw, 420px);
-    }
 }
 
 @media (max-width: 640px) {
@@ -1985,9 +1922,6 @@ footer a {
     }
     .hero-actions {
         margin-top: 20px;
-    }
-    .sphere-test-fallback {
-        width: min(72vw, 340px);
     }
     .sphere-test-label {
         bottom: 42px;
@@ -2120,18 +2054,391 @@ footer a {
     margin-top: 22px;
     color: rgba(255,255,255,.48);
 }
-.sphere-test-fallback {
-    position: absolute;
-    left: 50%;
-    top: 50%;
-    width: min(76%, 440px);
-    aspect-ratio: 1;
-    transform: translate(-50%, -50%);
-    border-radius: 50%;
-}
 @media (max-width: 760px) {
     .hero { width: min(calc(100% - 28px), var(--max-width)); padding-top: 102px; }
     .sphere-test-visual { width: min(94vw, 480px); height: min(86vw, 450px); min-height: 330px; }
     .hero h1 { font-size: clamp(2.45rem, 10.5vw, 4rem); }
     .hero-description { font-size: .96rem; line-height: 1.65; }
+}
+
+
+/* Sphere limpa: sem fallback visual antigo. */
+.sphere-load-error {
+    position: absolute;
+    inset: 0;
+    display: grid;
+    place-items: center;
+    padding: 2rem;
+    color: rgba(255,255,255,.72);
+    text-align: center;
+    font-size: .8rem;
+    line-height: 1.5;
+}
+.sphere-test-canvas { touch-action: none; }
+
+
+/* V15 adjustments */
+.sphere-test-label { display: none !important; }
+.hero .eyebrow { display: none !important; }
+.sphere-test-visual { width: min(96vw, 860px) !important; height: min(72vw, 760px) !important; min-height: 560px !important; max-width: none !important; }
+.sphere-test-shell { overflow: visible !important; }
+.sphere-test-canvas, .sphere-test-canvas canvas { overflow: visible !important; }
+@media (max-width: 980px) { .sphere-test-visual { width: min(100vw, 760px) !important; height: min(86vw, 640px) !important; min-height: 460px !important; } }
+@media (max-width: 640px) { .sphere-test-visual { width: 100vw !important; height: min(100vw, 520px) !important; min-height: 360px !important; } }
+
+
+/* =========================================================
+   V19 — Trajetória em zigue-zague guiada pelo scroll
+   ========================================================= */
+.trajectory-story {
+    position: relative;
+    overflow: clip;
+    padding: 130px 0 120px;
+    border-top: 1px solid var(--line);
+    border-bottom: 1px solid var(--line);
+    background:
+        radial-gradient(circle at 50% 8%, rgba(216,195,165,.20), transparent 28%),
+        var(--paper-soft);
+}
+
+.trajectory-heading {
+    width: min(calc(100% - 48px), 920px);
+    margin: 0 auto 86px;
+    text-align: center;
+}
+
+.trajectory-heading h2 {
+    margin: 0 auto 20px;
+    max-width: 820px;
+    color: var(--ink);
+    font-family: 'DM Serif Display', serif;
+    font-size: clamp(2.8rem, 6vw, 5.8rem);
+    font-weight: 400;
+    line-height: .96;
+    letter-spacing: -.045em;
+}
+
+.trajectory-heading > p:last-child {
+    max-width: 620px;
+    margin: 0 auto;
+    color: var(--ink-soft);
+    font-size: 1rem;
+    line-height: 1.75;
+}
+
+.trajectory-flow {
+    position: relative;
+    width: min(calc(100% - 48px), 1180px);
+    margin: 0 auto;
+    isolation: isolate;
+}
+
+.trajectory-path {
+    position: absolute;
+    inset: 0;
+    z-index: 0;
+    width: 100%;
+    height: 100%;
+    overflow: visible;
+    pointer-events: none;
+}
+
+#trajectory-zigzag-path {
+    fill: none;
+    stroke: rgba(184,145,91,.58);
+    stroke-width: 2.2;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+    vector-effect: non-scaling-stroke;
+    filter: drop-shadow(0 6px 9px rgba(110,77,39,.10));
+}
+
+.trajectory-arrow {
+    opacity: 0;
+    transition: opacity .2s ease;
+}
+
+.trajectory-arrow circle {
+    fill: #fffdf9;
+    stroke: rgba(184,145,91,.74);
+    stroke-width: 1.5;
+    vector-effect: non-scaling-stroke;
+}
+
+.trajectory-arrow path {
+    fill: none;
+    stroke: #a8793f;
+    stroke-width: 2;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+    vector-effect: non-scaling-stroke;
+}
+
+.trajectory-step {
+    position: relative;
+    z-index: 2;
+    min-height: 58vh;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 84px minmax(0, 1fr);
+    align-items: center;
+    opacity: .18;
+    transform: translateY(42px) scale(.985);
+    transition: opacity .72s ease, transform .72s cubic-bezier(.2,.8,.2,1);
+}
+
+.trajectory-step.is-active {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+}
+
+.trajectory-step-card {
+    width: min(100%, 470px);
+    padding: 34px 36px 36px;
+    border: 1px solid rgba(75,59,37,.12);
+    border-radius: 28px;
+    background: rgba(255,253,249,.88);
+    backdrop-filter: blur(12px);
+    box-shadow: 0 20px 50px rgba(67,53,36,.07);
+}
+
+.trajectory-step:nth-of-type(odd) .trajectory-step-card {
+    grid-column: 1;
+    justify-self: end;
+    text-align: right;
+}
+
+.trajectory-step:nth-of-type(even) .trajectory-step-card {
+    grid-column: 3;
+    justify-self: start;
+}
+
+.trajectory-step-number {
+    grid-column: 2;
+    grid-row: 1;
+    justify-self: center;
+    display: grid;
+    place-items: center;
+    width: 48px;
+    height: 48px;
+    border: 1px solid rgba(184,145,91,.38);
+    border-radius: 50%;
+    background: #fffdf9;
+    box-shadow: 0 12px 28px rgba(80,58,27,.09);
+    color: #9b6d33;
+    font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    font-size: .72rem;
+    font-weight: 800;
+    letter-spacing: .06em;
+}
+
+.trajectory-step-kicker {
+    margin-bottom: 10px;
+    color: #a8793f !important;
+    font-size: .68rem !important;
+    font-weight: 800;
+    letter-spacing: .14em;
+    text-transform: uppercase;
+}
+
+.trajectory-step-card h3 {
+    margin: 0 0 15px;
+    color: var(--ink);
+    font-family: 'DM Serif Display', serif;
+    font-size: clamp(1.8rem, 3vw, 2.7rem);
+    font-weight: 400;
+    line-height: 1.02;
+    letter-spacing: -.03em;
+}
+
+.trajectory-step-card > p:last-child {
+    margin: 0;
+    color: var(--ink-soft);
+    font-size: .95rem;
+    line-height: 1.78;
+}
+
+@media (max-width: 720px) {
+    .trajectory-story {
+        padding: 100px 0 84px;
+    }
+    .trajectory-heading {
+        width: calc(100% - 36px);
+        margin-bottom: 54px;
+        text-align: left;
+    }
+    .trajectory-flow {
+        width: calc(100% - 28px);
+    }
+    .trajectory-step {
+        min-height: 52vh;
+        grid-template-columns: 58px minmax(0, 1fr);
+        gap: 0;
+    }
+    .trajectory-step-number {
+        grid-column: 1;
+        justify-self: start;
+        width: 42px;
+        height: 42px;
+    }
+    .trajectory-step-card,
+    .trajectory-step:nth-of-type(odd) .trajectory-step-card,
+    .trajectory-step:nth-of-type(even) .trajectory-step-card {
+        grid-column: 2;
+        justify-self: stretch;
+        width: 100%;
+        text-align: left;
+        padding: 28px 26px 30px;
+        border-radius: 24px;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .trajectory-step {
+        opacity: 1;
+        transform: none;
+        transition: none;
+    }
+}
+
+/* V32: stage 3 refined — seasonal scarf + rare accessories */
+.sphere-scarf {
+    position: absolute;
+    left: 50%;
+    top: 68%;
+    width: min(45%, 205px);
+    aspect-ratio: 1.75 / 1;
+    transform: translate(-50%, -50%) scale(.82);
+    pointer-events: none;
+    opacity: 0;
+    z-index: 4;
+    filter: drop-shadow(0 10px 13px rgba(0,0,0,.28));
+    transition: opacity .45s ease, transform .7s cubic-bezier(.2,.8,.2,1);
+    --scarf-color: #f4c400;
+    --scarf-dark: color-mix(in srgb, var(--scarf-color) 70%, black);
+    --scarf-light: color-mix(in srgb, var(--scarf-color) 78%, white);
+}
+.sphere-scarf.is-visible { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+.sphere-scarf.is-flying { animation: scarfFlyIn 3.25s cubic-bezier(.18,.82,.18,1) both; }
+.sphere-scarf.is-hiding { animation: scarfFlyOut 1.8s ease-in both; }
+.sphere-scarf .scarf-loop {
+    position: absolute;
+    left: 50%; top: 26%;
+    width: 60%; height: 34%;
+    transform: translate(-50%, -50%);
+    border-radius: 999px;
+    border: 14px solid var(--scarf-color);
+    box-shadow: inset 0 -4px 0 rgba(0,0,0,.12), inset 0 4px 0 rgba(255,255,255,.13);
+    background: transparent;
+}
+.sphere-scarf .scarf-loop::after {
+    content: '';
+    position: absolute;
+    inset: -10px;
+    border-radius: inherit;
+    border: 2px dashed rgba(255,255,255,.12);
+    opacity: .8;
+}
+.sphere-scarf .scarf-knot {
+    position: absolute;
+    left: 52%; top: 39%;
+    width: 24%; height: 22%;
+    transform: translate(-50%, -50%) rotate(-4deg);
+    border-radius: 48% 52% 55% 45%;
+    background: linear-gradient(150deg, var(--scarf-light), var(--scarf-color) 45%, var(--scarf-dark));
+    box-shadow: 0 6px 10px rgba(0,0,0,.2), inset 0 3px 0 rgba(255,255,255,.13);
+    z-index: 3;
+}
+.sphere-scarf .scarf-tail {
+    position: absolute;
+    top: 42%;
+    width: 20%;
+    height: 50%;
+    background:
+      repeating-linear-gradient(90deg, rgba(255,255,255,.08) 0 2px, transparent 2px 9px),
+      linear-gradient(180deg, var(--scarf-light), var(--scarf-color) 34%, var(--scarf-dark));
+    border-radius: 12px 12px 18px 18px;
+    box-shadow: inset 0 -6px 0 rgba(0,0,0,.12), inset 0 4px 0 rgba(255,255,255,.10);
+    transform-origin: 50% 0;
+}
+.sphere-scarf .scarf-tail-left { left: 34%; transform: rotate(9deg); animation: scarfTailLeft 4.8s ease-in-out infinite; }
+.sphere-scarf .scarf-tail-right { right: 25%; height: 61%; top: 38%; transform: rotate(-8deg); animation: scarfTailRight 5.3s ease-in-out infinite; }
+.sphere-scarf .scarf-tail::after {
+    content: '';
+    position: absolute;
+    left: 10%; right: 10%; bottom: -8px;
+    height: 12px;
+    background: repeating-linear-gradient(90deg, var(--scarf-dark) 0 3px, transparent 3px 7px);
+    opacity: .75;
+}
+@keyframes scarfTailLeft { 0%,100%{transform:rotate(9deg)} 50%{transform:rotate(13deg)} }
+@keyframes scarfTailRight { 0%,100%{transform:rotate(-8deg)} 50%{transform:rotate(-12deg)} }
+@keyframes scarfFlyIn {
+    0% { opacity: 0; transform: translate(calc(-50% - 310px), calc(-50% - 210px)) rotate(-42deg) scale(.30); }
+    36% { opacity: 1; transform: translate(calc(-50% - 24px), calc(-50% - 105px)) rotate(15deg) scale(.70); }
+    66% { opacity: 1; transform: translate(calc(-50% + 16px), calc(-50% + 16px)) rotate(-7deg) scale(1.05); }
+    83% { opacity: 1; transform: translate(calc(-50% - 8px), calc(-50% - 5px)) rotate(3deg) scale(.985); }
+    100% { opacity: 1; transform: translate(-50%, -50%) rotate(0) scale(1); }
+}
+@keyframes scarfFlyOut {
+    0% { opacity: 1; transform: translate(-50%, -50%) rotate(0) scale(1); }
+    100% { opacity: 0; transform: translate(calc(-50% + 290px), calc(-50% - 150px)) rotate(34deg) scale(.42); }
+}
+
+.sphere-accessory {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    z-index: 5;
+    opacity: 0;
+    transform: scale(.92);
+    transition: opacity .35s ease, transform .5s ease;
+}
+.sphere-accessory.is-visible { opacity: 1; transform: scale(1); }
+.sphere-accessory.is-entering { animation: accessoryEnter 2.6s cubic-bezier(.2,.82,.2,1) both; }
+.sphere-accessory.is-leaving { animation: accessoryLeave 1.5s ease-in both; }
+@keyframes accessoryEnter {
+    0% { opacity:0; transform:translateY(-130px) rotate(-18deg) scale(.55); }
+    62% { opacity:1; transform:translateY(12px) rotate(6deg) scale(1.05); }
+    82% { transform:translateY(-5px) rotate(-3deg) scale(.985); }
+    100% { opacity:1; transform:translateY(0) rotate(0) scale(1); }
+}
+@keyframes accessoryLeave {
+    0% { opacity:1; transform:translateY(0) rotate(0) scale(1); }
+    100% { opacity:0; transform:translateY(-120px) rotate(20deg) scale(.65); }
+}
+.sphere-accessory .accessory-part { position:absolute; display:none; }
+
+/* Summer sunglasses */
+.sphere-accessory.type-shades .part-a,
+.sphere-accessory.type-shades .part-b {
+    display:block; top:37%; width:16%; height:11%;
+    border:7px solid #111; border-radius:42% 42% 50% 50%;
+    background:linear-gradient(145deg, rgba(35,35,35,.94), rgba(0,0,0,.78));
+    box-shadow:inset 0 0 0 2px rgba(255,255,255,.09), 0 5px 10px rgba(0,0,0,.2);
+}
+.sphere-accessory.type-shades .part-a { left:32%; transform:rotate(3deg); }
+.sphere-accessory.type-shades .part-b { right:32%; transform:rotate(-3deg); }
+.sphere-accessory.type-shades .part-c { display:block; left:47%; top:41%; width:6%; height:7px; background:#111; border-radius:8px; }
+.sphere-accessory.type-shades .part-d { display:block; left:29%; top:40%; width:42%; height:5px; background:#111; border-radius:8px; opacity:.9; }
+
+/* Brazilian June straw hat */
+.sphere-accessory.type-straw .part-a { display:block; left:31%; top:12%; width:38%; height:14%; background:#d8a94b; border-radius:50% 50% 40% 40%; transform:rotate(-7deg); box-shadow:inset 0 -8px 0 #b67f2c, 0 7px 12px rgba(0,0,0,.18); }
+.sphere-accessory.type-straw .part-b { display:block; left:22%; top:23%; width:56%; height:8%; background:#e8be64; border-radius:50%; transform:rotate(-7deg); box-shadow:0 5px 10px rgba(0,0,0,.2); }
+.sphere-accessory.type-straw .part-c { display:block; left:34%; top:22%; width:32%; height:5%; background:#8f3d2d; transform:rotate(-7deg); }
+
+/* Winter beanie */
+.sphere-accessory.type-beanie .part-a { display:block; left:32%; top:9%; width:36%; height:20%; background:linear-gradient(#3d6f9d,#244d74); border-radius:50% 50% 28% 28%; box-shadow:inset 0 -7px 0 rgba(0,0,0,.18), 0 7px 12px rgba(0,0,0,.2); }
+.sphere-accessory.type-beanie .part-b { display:block; left:30%; top:24%; width:40%; height:6%; background:#214765; border-radius:7px; }
+.sphere-accessory.type-beanie .part-c { display:block; left:46%; top:4%; width:8%; aspect-ratio:1; background:#315f88; border-radius:50%; box-shadow:0 4px 8px rgba(0,0,0,.18); }
+
+/* December Santa hat */
+.sphere-accessory.type-santa .part-a { display:block; left:34%; top:5%; width:34%; height:24%; background:#d9473f; clip-path:polygon(10% 100%, 82% 100%, 100% 0); transform:rotate(8deg); filter:drop-shadow(0 6px 7px rgba(0,0,0,.2)); }
+.sphere-accessory.type-santa .part-b { display:block; left:30%; top:25%; width:43%; height:7%; background:#f5f2ea; border-radius:999px; transform:rotate(2deg); }
+.sphere-accessory.type-santa .part-c { display:block; left:64%; top:2%; width:8%; aspect-ratio:1; background:#f5f2ea; border-radius:50%; box-shadow:0 4px 8px rgba(0,0,0,.18); }
+
+@media (max-width:640px) {
+    .sphere-scarf { width:min(49%, 175px); top:69%; }
+    .sphere-scarf .scarf-loop { border-width:11px; }
+    .sphere-accessory.type-shades .part-a,
+    .sphere-accessory.type-shades .part-b { border-width:5px; }
 }

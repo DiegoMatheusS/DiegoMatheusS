@@ -1,431 +1,1488 @@
 (() => {
     const host = document.getElementById('sphere-test-canvas');
     const shell = document.getElementById('sphere-test-shell');
+    const scarfEl = document.getElementById('sphere-scarf');
+    const accessoryEl = document.getElementById('sphere-accessory');
+    const projectsTrigger = document.getElementById('projects-trigger');
+    const stage5Sections = ['trajetoria', 'experiencia', 'habilidades', 'projetos', 'contato']
+        .map(id => document.getElementById(id))
+        .filter(Boolean);
     if (!host || !shell) return;
 
-    const depsReady = window.THREE && THREE.EffectComposer && THREE.RenderPass && THREE.UnrealBloomPass;
-    if (!depsReady) {
-        shell.classList.add('is-fallback-only');
-        return;
+    const THREE_URLS = [
+        'https://cdn.jsdelivr.net/npm/three@0.128.0/build/three.min.js',
+        'https://unpkg.com/three@0.128.0/build/three.min.js'
+    ];
+
+    function loadScript(url) {
+        return new Promise((resolve, reject) => {
+            const s = document.createElement('script');
+            s.src = url;
+            s.async = true;
+            s.onload = resolve;
+            s.onerror = reject;
+            document.head.appendChild(s);
+        });
     }
 
-    const THREE = window.THREE;
-    const scene = new THREE.Scene();
-    const camera = new THREE.PerspectiveCamera(31, 1, 0.1, 60);
-    camera.position.set(0, 0, 6.15);
-
-    const renderer = new THREE.WebGLRenderer({
-        antialias: false, // os próprios LEDs já são suavizados no shader
-        alpha: true,
-        powerPreference: 'high-performance',
-        preserveDrawingBuffer: false
-    });
-    renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
-    renderer.outputEncoding = THREE.sRGBEncoding;
-    renderer.setClearColor(0x000000, 0);
-    host.appendChild(renderer.domElement);
-
-    // Pós-processamento: bloom único e leve.
-    const renderPass = new THREE.RenderPass(scene, camera);
-    const bloomPass = new THREE.UnrealBloomPass(new THREE.Vector2(1, 1), 0.72, 0.28, 0.48);
-    bloomPass.strength = 0.72;
-    bloomPass.radius = 0.28;
-    bloomPass.threshold = 0.48;
-    const composer = new THREE.EffectComposer(renderer);
-    composer.addPass(renderPass);
-    composer.addPass(bloomPass);
-
-    const RADIUS = 1.72;
-    const LED_COUNT = 18000;
-    const sphereGroup = new THREE.Group();
-    scene.add(sphereGroup);
-
-    // Distribuição de Fibonacci: pontos uniformes, sem costuras/polos concentrados.
-    const positions = new Float32Array(LED_COUNT * 3);
-    const golden = Math.PI * (3 - Math.sqrt(5));
-    for (let i = 0; i < LED_COUNT; i++) {
-        const y = 1 - (i / (LED_COUNT - 1)) * 2;
-        const r = Math.sqrt(Math.max(0, 1 - y * y));
-        const theta = golden * i;
-        const x = Math.cos(theta) * r;
-        const z = Math.sin(theta) * r;
-        positions[i * 3] = x * RADIUS;
-        positions[i * 3 + 1] = y * RADIUS;
-        positions[i * 3 + 2] = z * RADIUS;
+    async function ensureThree() {
+        if (window.THREE) return true;
+        for (const url of THREE_URLS) {
+            try {
+                await loadScript(url);
+                if (window.THREE) return true;
+            } catch (_) {}
+        }
+        return false;
     }
-    const ledGeometry = new THREE.BufferGeometry();
-    ledGeometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
 
-    const uniforms = {
-        uTime: { value: 0 },
-        uLook: { value: new THREE.Vector2(0, 0) },
-        uBlink: { value: 1 },
-        uHover: { value: 0 },
-        uPixelRatio: { value: Math.min(window.devicePixelRatio || 1, 2) }
-    };
-
-    const vertexShader = `
-        uniform float uPixelRatio;
-        varying vec3 vObjPos;
-        varying float vDepthLight;
-
-        void main() {
-            vObjPos = position / ${RADIUS.toFixed(2)};
-            vec4 mv = modelViewMatrix * vec4(position, 1.0);
-            float depth = max(2.0, -mv.z);
-            gl_PointSize = (4.15 * uPixelRatio) * (6.1 / depth);
-            gl_Position = projectionMatrix * mv;
-
-            vec3 n = normalize(position);
-            vec3 lightDir = normalize(vec3(-0.48, 0.72, 0.64));
-            vDepthLight = 0.72 + max(dot(n, lightDir), 0.0) * 0.42;
+    ensureThree().then(ok => {
+        if (!ok) {
+            const error = document.createElement('p');
+            error.className = 'sphere-load-error';
+            error.textContent = 'Não foi possível carregar o 3D. Verifique a conexão e recarregue.';
+            shell.appendChild(error);
+            return;
         }
-    `;
-
-    const fragmentShader = `
-        precision highp float;
-        uniform float uTime;
-        uniform vec2 uLook;
-        uniform float uBlink;
-        uniform float uHover;
-        varying vec3 vObjPos;
-        varying float vDepthLight;
-
-        float ellipse(vec2 p, vec2 c, vec2 r) {
-            vec2 q = (p - c) / r;
-            return length(q);
-        }
-        float fillEllipse(vec2 p, vec2 c, vec2 r, float soft) {
-            return 1.0 - smoothstep(1.0 - soft, 1.0 + soft, ellipse(p, c, r));
-        }
-        float lineMask(float d, float w, float soft) {
-            return 1.0 - smoothstep(w, w + soft, abs(d));
-        }
-
-        void main() {
-            // LED circular individual.
-            vec2 pc = gl_PointCoord - 0.5;
-            float d = length(pc);
-            if (d > 0.5) discard;
-            float dotAlpha = 1.0 - smoothstep(0.36, 0.50, d);
-            float core = 1.0 - smoothstep(0.0, 0.31, d);
-
-            vec3 yellow = vec3(1.0, 0.72, 0.015);
-            vec3 warmYellow = vec3(1.0, 0.84, 0.055);
-            vec3 color = mix(yellow, warmYellow, core * 0.38) * vDepthLight;
-
-            vec2 p = vObjPos.xy;
-            float front = smoothstep(0.18, 0.42, vObjPos.z);
-            vec2 look = clamp(uLook, vec2(-1.0), vec2(1.0));
-
-            // Expressão calma e simples, toda calculada nos LEDs.
-            vec2 eyeR = vec2(0.155, 0.205 * max(uBlink, 0.055));
-            vec2 leftC  = vec2(-0.285, 0.19);
-            vec2 rightC = vec2( 0.285, 0.19);
-            float leftEye = fillEllipse(p, leftC, eyeR, 0.035) * front;
-            float rightEye = fillEllipse(p, rightC, eyeR, 0.035) * front;
-            float eyes = max(leftEye, rightEye);
-
-            vec2 pupilOffset = vec2(look.x * 0.050, look.y * 0.038);
-            vec2 pupilR = vec2(0.055, 0.064 * max(uBlink, 0.20));
-            float lp = fillEllipse(p, leftC + pupilOffset, pupilR, 0.045) * leftEye;
-            float rp = fillEllipse(p, rightC + pupilOffset, pupilR, 0.045) * rightEye;
-            float pupils = max(lp, rp);
-
-            float mouthHalf = mix(0.125, 0.165, uHover);
-            float mouthCurve = -0.36 - 0.080 * (1.0 - (p.x / mouthHalf) * (p.x / mouthHalf));
-            float mouthRange = 1.0 - smoothstep(mouthHalf, mouthHalf + 0.018, abs(p.x));
-            float mouth = lineMask(p.y - mouthCurve, 0.013, 0.010) * mouthRange * front;
-
-            vec3 eyeWhite = vec3(1.15, 1.15, 1.12); // >1 ajuda o bloom seletivo
-            vec3 ink = vec3(0.025, 0.025, 0.024);
-            color = mix(color, eyeWhite, eyes);
-            color = mix(color, ink, pupils);
-            color = mix(color, ink, mouth);
-
-            // Pulso discreto de painel LED.
-            float pulse = 0.018 * sin(uTime * 1.15 + vObjPos.y * 2.2);
-            color += yellow * pulse;
-
-            gl_FragColor = vec4(color, dotAlpha);
-        }
-    `;
-
-    const ledMaterial = new THREE.ShaderMaterial({
-        uniforms,
-        vertexShader,
-        fragmentShader,
-        transparent: true,
-        depthTest: true,
-        depthWrite: true,
-        blending: THREE.NormalBlending
+        initSphere(window.THREE);
     });
 
-    const leds = new THREE.Points(ledGeometry, ledMaterial);
-    leds.renderOrder = 3;
-    sphereGroup.add(leds);
+    function initSphere(THREE) {
+        const scene = new THREE.Scene();
+        const camera = new THREE.PerspectiveCamera(31, 1, 0.1, 60);
+        camera.position.set(0, 0, 6.15);
 
-    // Esfera interna menor com LEDs pretos, mantendo a superfície externa idêntica à V6.
-    const INNER_RADIUS = RADIUS * 0.78;
-    const INNER_LED_COUNT = 5200;
-    const innerPositions = new Float32Array(INNER_LED_COUNT * 3);
-    for (let i = 0; i < INNER_LED_COUNT; i++) {
-        const y = 1 - (i / (INNER_LED_COUNT - 1)) * 2;
-        const r = Math.sqrt(Math.max(0, 1 - y * y));
-        const theta = golden * i;
-        innerPositions[i * 3] = Math.cos(theta) * r * INNER_RADIUS;
-        innerPositions[i * 3 + 1] = y * INNER_RADIUS;
-        innerPositions[i * 3 + 2] = Math.sin(theta) * r * INNER_RADIUS;
-    }
-    const innerLedGeometry = new THREE.BufferGeometry();
-    innerLedGeometry.setAttribute('position', new THREE.BufferAttribute(innerPositions, 3));
+        const renderer = new THREE.WebGLRenderer({
+            antialias: false,
+            alpha: true,
+            powerPreference: 'high-performance',
+            preserveDrawingBuffer: false
+        });
+        renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+        renderer.outputEncoding = THREE.sRGBEncoding;
+        renderer.setClearColor(0x000000, 0);
+        renderer.domElement.setAttribute('aria-label', 'Sphere LED 3D interativa');
+        host.replaceChildren(renderer.domElement);
 
-    const innerVertexShader = `
-        uniform float uPixelRatio;
-        varying float vShade;
-        void main() {
-            vec4 mv = modelViewMatrix * vec4(position, 1.0);
-            float depth = max(2.0, -mv.z);
-            gl_PointSize = (2.0 * uPixelRatio) * (6.1 / depth);
-            gl_Position = projectionMatrix * mv;
-            vec3 n = normalize(position);
-            vec3 lightDir = normalize(vec3(-0.46, 0.68, 0.62));
-            vShade = 0.025 + max(dot(n, lightDir), 0.0) * 0.045;
+        const RADIUS = 1.48;
+        const LED_COUNT = 120000;
+        const sphereGroup = new THREE.Group();
+        scene.add(sphereGroup);
+
+        const positions = new Float32Array(LED_COUNT * 3);
+        const golden = Math.PI * (3 - Math.sqrt(5));
+        for (let i = 0; i < LED_COUNT; i++) {
+            const y = 1 - (i / (LED_COUNT - 1)) * 2;
+            const r = Math.sqrt(Math.max(0, 1 - y * y));
+            const theta = golden * i;
+            positions[i * 3] = Math.cos(theta) * r * RADIUS;
+            positions[i * 3 + 1] = y * RADIUS;
+            positions[i * 3 + 2] = Math.sin(theta) * r * RADIUS;
         }
-    `;
+        const ledGeometry = new THREE.BufferGeometry();
+        ledGeometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
 
-    const innerFragmentShader = `
-        precision highp float;
-        varying float vShade;
-        void main() {
-            vec2 pc = gl_PointCoord - 0.5;
-            float d = length(pc);
-            if (d > 0.5) discard;
-            float alpha = 1.0 - smoothstep(0.34, 0.50, d);
-            gl_FragColor = vec4(vec3(vShade), alpha * 0.34);
-        }
-    `;
+        const uniforms = {
+            uTime: { value: 0 },
+            uLook: { value: new THREE.Vector2(0, 0) },
+            uBlinkLeft: { value: 1 },
+            uBlinkRight: { value: 1 },
+            uMouthOpen: { value: 0 },
+            uHover: { value: 0 },
+            uExpression: { value: 0 },
+            uPixelRatio: { value: Math.min(window.devicePixelRatio || 1, 2) },
+            uPointScale: { value: 1 },
+            uGlow: { value: 0 }
+        };
 
-    const innerLedMaterial = new THREE.ShaderMaterial({
-        uniforms: { uPixelRatio: uniforms.uPixelRatio },
-        vertexShader: innerVertexShader,
-        fragmentShader: innerFragmentShader,
-        transparent: true,
-        depthTest: true,
-        depthWrite: true,
-        blending: THREE.NormalBlending
-    });
-    const innerLeds = new THREE.Points(innerLedGeometry, innerLedMaterial);
-    innerLeds.renderOrder = 2;
-    sphereGroup.add(innerLeds);
+        const vertexShader = `
+            uniform float uPixelRatio;
+            uniform float uPointScale;
+            varying vec3 vObjPos;
+            varying float vDepthLight;
 
-    const inner = new THREE.Mesh(
-        new THREE.IcosahedronGeometry(RADIUS * 0.70, 4),
-        new THREE.MeshBasicMaterial({ color: 0x030303, transparent: false })
-    );
-    inner.renderOrder = 1;
-    sphereGroup.add(inner);
+            void main() {
+                vObjPos = position / ${RADIUS.toFixed(2)};
+                vec4 mv = modelViewMatrix * vec4(position, 1.0);
+                float depth = max(2.0, -mv.z);
+                gl_PointSize = (2.05 * uPixelRatio * uPointScale) * (6.1 / depth);
+                gl_Position = projectionMatrix * mv;
 
-    // Raycaster usa uma malha invisível simples, não 18 mil pontos.
-    const hitSphere = new THREE.Mesh(
-        new THREE.IcosahedronGeometry(RADIUS, 3),
-        new THREE.MeshBasicMaterial({ transparent: true, opacity: 0, depthWrite: false })
-    );
-    sphereGroup.add(hitSphere);
-
-    const pointer = new THREE.Vector2(0, 0);
-    const targetLook = new THREE.Vector2(0, 0);
-    const smoothLook = new THREE.Vector2(0, 0);
-    const raycaster = new THREE.Raycaster();
-    const hitLocal = new THREE.Vector3();
-
-    const drag = {
-        active: false,
-        pointerId: null,
-        startClientX: 0,
-        startClientY: 0,
-        startX: 0,
-        startY: 0
-    };
-    let pointerActive = false;
-    let frameCounter = 0;
-    let rafId = 0;
-    let running = false;
-    let inViewport = true;
-    let pageVisible = !document.hidden;
-    let lastTime = performance.now();
-    let blinkStart = 0;
-    let blinkDuration = 170;
-    let nextBlink = performance.now() + 1900 + Math.random() * 2800;
-
-    function viewportWorldSize() {
-        const rect = renderer.domElement.getBoundingClientRect();
-        const distance = camera.position.z - sphereGroup.position.z;
-        const visibleH = 2 * Math.tan(THREE.MathUtils.degToRad(camera.fov * 0.5)) * distance;
-        return { rect, h: visibleH, w: visibleH * camera.aspect };
-    }
-
-    function clampSpherePosition() {
-        const size = viewportWorldSize();
-        const pad = RADIUS * 1.04;
-        const maxX = Math.max(0, size.w * 0.5 - pad);
-        const maxY = Math.max(0, size.h * 0.5 - pad);
-        sphereGroup.position.x = THREE.MathUtils.clamp(sphereGroup.position.x, -maxX, maxX);
-        sphereGroup.position.y = THREE.MathUtils.clamp(sphereGroup.position.y, -maxY, maxY);
-    }
-
-    function resize() {
-        const rect = host.getBoundingClientRect();
-        const width = Math.max(1, Math.round(rect.width));
-        const height = Math.max(1, Math.round(rect.height));
-        renderer.setSize(width, height, false);
-        composer.setSize(width, height);
-        camera.aspect = width / height;
-        camera.updateProjectionMatrix();
-        uniforms.uPixelRatio.value = Math.min(window.devicePixelRatio || 1, 2);
-        clampSpherePosition();
-    }
-
-    function updatePointer(event) {
-        const rect = renderer.domElement.getBoundingClientRect();
-        if (!rect.width || !rect.height) return;
-        pointer.x = ((event.clientX - rect.left) / rect.width) * 2 - 1;
-        pointer.y = -((event.clientY - rect.top) / rect.height) * 2 + 1;
-        pointer.x = THREE.MathUtils.clamp(pointer.x, -1.25, 1.25);
-        pointer.y = THREE.MathUtils.clamp(pointer.y, -1.25, 1.25);
-        pointerActive = true;
-    }
-    function pointerHitsSphere(event) {
-        updatePointer(event);
-        raycaster.setFromCamera(pointer, camera);
-        return !!raycaster.intersectObject(hitSphere, false)[0];
-    }
-
-    shell.addEventListener('pointerdown', (event) => {
-        if (event.button !== undefined && event.button !== 0) return;
-        if (!pointerHitsSphere(event)) return;
-        event.preventDefault();
-        drag.active = true;
-        drag.pointerId = event.pointerId;
-        drag.startClientX = event.clientX;
-        drag.startClientY = event.clientY;
-        drag.startX = sphereGroup.position.x;
-        drag.startY = sphereGroup.position.y;
-        shell.classList.add('is-dragging');
-        try { shell.setPointerCapture(event.pointerId); } catch (_) {}
-    });
-
-    window.addEventListener('pointermove', (event) => {
-        updatePointer(event);
-        if (!drag.active || event.pointerId !== drag.pointerId) return;
-        event.preventDefault();
-        const size = viewportWorldSize();
-        const worldPerPixelX = size.w / Math.max(1, size.rect.width);
-        const worldPerPixelY = size.h / Math.max(1, size.rect.height);
-        sphereGroup.position.x = drag.startX + (event.clientX - drag.startClientX) * worldPerPixelX;
-        sphereGroup.position.y = drag.startY - (event.clientY - drag.startClientY) * worldPerPixelY;
-        clampSpherePosition();
-    }, { passive: false });
-
-    function endDrag(event) {
-        if (!drag.active) return;
-        if (event?.pointerId !== undefined && event.pointerId !== drag.pointerId) return;
-        drag.active = false;
-        shell.classList.remove('is-dragging');
-        try { shell.releasePointerCapture(drag.pointerId); } catch (_) {}
-        drag.pointerId = null;
-    }
-    window.addEventListener('pointerup', endDrag);
-    window.addEventListener('pointercancel', endDrag);
-    window.addEventListener('pointerleave', () => { if (!drag.active) pointerActive = false; }, { passive:true });
-    shell.addEventListener('pointerenter', () => { uniforms.uHover.value = 1; }, { passive:true });
-    shell.addEventListener('pointerleave', () => { uniforms.uHover.value = drag.active ? 1 : 0; }, { passive:true });
-
-    function updateBlink(now) {
-        if (!blinkStart && now >= nextBlink) {
-            blinkStart = now;
-            blinkDuration = 145 + Math.random() * 75;
-        }
-        if (!blinkStart) return;
-        const t = (now - blinkStart) / blinkDuration;
-        if (t >= 1) {
-            blinkStart = 0;
-            uniforms.uBlink.value = 1;
-            nextBlink = now + 1900 + Math.random() * 3900;
-        } else {
-            uniforms.uBlink.value = Math.max(0.05, Math.abs(Math.cos(t * Math.PI)));
-        }
-    }
-
-    function animate(now) {
-        if (!running) return;
-        rafId = requestAnimationFrame(animate);
-        const dt = Math.min(0.05, (now - lastTime) / 1000);
-        lastTime = now;
-        uniforms.uTime.value += dt;
-        updateBlink(now);
-
-        // Raycast só a cada terceiro frame e apenas numa esfera invisível leve.
-        frameCounter = (frameCounter + 1) % 3;
-        if (frameCounter === 0 && pointerActive && !drag.active) {
-            raycaster.setFromCamera(pointer, camera);
-            const hit = raycaster.intersectObject(hitSphere, false)[0];
-            if (hit) {
-                hitLocal.copy(hit.point);
-                hitSphere.worldToLocal(hitLocal).divideScalar(RADIUS);
-                targetLook.set(hitLocal.x * 1.65, hitLocal.y * 1.65);
-            } else {
-                targetLook.set(pointer.x * 0.72, pointer.y * 0.56);
+                vec3 n = normalize(position);
+                vec3 lightDir = normalize(vec3(-0.48, 0.72, 0.64));
+                vDepthLight = 0.72 + max(dot(n, lightDir), 0.0) * 0.42;
             }
-            targetLook.x = THREE.MathUtils.clamp(targetLook.x, -1, 1);
-            targetLook.y = THREE.MathUtils.clamp(targetLook.y, -1, 1);
-        } else if (!pointerActive) {
-            targetLook.set(0, 0);
+        `;
+
+        const fragmentShader = `
+            precision highp float;
+            uniform float uTime;
+            uniform vec2 uLook;
+            uniform float uBlinkLeft;
+            uniform float uBlinkRight;
+            uniform float uMouthOpen;
+            uniform float uHover;
+            uniform float uExpression;
+            uniform float uGlow;
+            varying vec3 vObjPos;
+            varying float vDepthLight;
+
+            float ellipse(vec2 p, vec2 c, vec2 r) {
+                vec2 q = (p - c) / r;
+                return length(q);
+            }
+            float fillEllipse(vec2 p, vec2 c, vec2 r, float soft) {
+                return 1.0 - smoothstep(1.0 - soft, 1.0 + soft, ellipse(p, c, r));
+            }
+            float lineMask(float d, float w, float soft) {
+                return 1.0 - smoothstep(w, w + soft, abs(d));
+            }
+
+            void main() {
+                vec2 pc = gl_PointCoord - 0.5;
+                float d = length(pc);
+                if (d > 0.5) discard;
+
+                float dotAlpha = 1.0 - smoothstep(0.36, 0.50, d);
+                float core = 1.0 - smoothstep(0.0, 0.31, d);
+                float glowAlpha = (1.0 - smoothstep(0.04, 0.50, d)) * 0.18;
+
+                vec3 yellow = vec3(1.0, 0.72, 0.015);
+                vec3 warmYellow = vec3(1.0, 0.84, 0.055);
+                vec3 color = mix(yellow, warmYellow, core * 0.38) * vDepthLight;
+
+                vec2 p = vObjPos.xy;
+                float front = smoothstep(0.18, 0.42, vObjPos.z);
+                vec2 look = clamp(uLook, vec2(-1.0), vec2(1.0));
+
+                float wide = step(0.5, uExpression) * (1.0 - step(1.5, uExpression));
+                float squint = step(1.5, uExpression) * (1.0 - step(2.5, uExpression));
+                float winkL = step(2.5, uExpression) * (1.0 - step(3.5, uExpression));
+                float winkR = step(3.5, uExpression) * (1.0 - step(4.5, uExpression));
+                float meh = step(4.5, uExpression) * (1.0 - step(5.5, uExpression));
+                float happy = step(5.5, uExpression) * (1.0 - step(6.5, uExpression));
+                float sleepy = step(6.5, uExpression) * (1.0 - step(7.5, uExpression));
+                float tinyO = step(7.5, uExpression) * (1.0 - step(8.5, uExpression));
+                float laugh = step(8.5, uExpression) * (1.0 - step(9.5, uExpression));
+                float sad = step(9.5, uExpression) * (1.0 - step(10.5, uExpression));
+                float angry = step(10.5, uExpression) * (1.0 - step(11.5, uExpression));
+                float cross = step(11.5, uExpression) * (1.0 - step(12.5, uExpression));
+                float sideEye = step(12.5, uExpression) * (1.0 - step(13.5, uExpression));
+                float kiss = step(13.5, uExpression) * (1.0 - step(14.5, uExpression));
+                float grin = step(14.5, uExpression) * (1.0 - step(15.5, uExpression));
+                float confused = step(15.5, uExpression) * (1.0 - step(16.5, uExpression));
+                float cry = step(16.5, uExpression) * (1.0 - step(17.5, uExpression));
+                float blush = step(17.5, uExpression) * (1.0 - step(18.5, uExpression));
+                float furious = step(18.5, uExpression);
+
+                float angryHeat = clamp(angry * 0.62 + furious, 0.0, 1.0);
+                vec3 angerTint = mix(vec3(1.0, 0.42, 0.08), vec3(0.96, 0.17, 0.12), angryHeat);
+                color = mix(color, angerTint * vDepthLight, angryHeat * 0.72);
+
+                float baseEyeY = 0.205;
+                baseEyeY *= mix(1.0, 1.26, wide);
+                baseEyeY *= mix(1.0, 0.58, squint + angry * 0.55 + laugh * 0.45 + sideEye * 0.35 + grin * 0.28 + furious * 0.62 + confused * 0.12);
+                baseEyeY *= mix(1.0, 0.72, sleepy);
+                baseEyeY *= mix(1.0, 0.92, happy + blush * 0.22);
+                baseEyeY *= mix(1.0, 1.08, sad + cry * 0.18);
+                baseEyeY *= mix(1.0, 0.88, kiss);
+
+                vec2 eyeRLeft = vec2(0.155, baseEyeY * max(uBlinkLeft, 0.018));
+                vec2 eyeRRight = vec2(0.155, baseEyeY * max(uBlinkRight, 0.018));
+
+                vec2 leftC = vec2(-0.285, 0.19);
+                vec2 rightC = vec2(0.285, 0.19);
+                // Na piscadinha de um olho, removemos o branco daquele olho e desenhamos um risco preto.
+                float leftEye = fillEllipse(p, leftC, eyeRLeft, 0.035) * front * (1.0 - winkL);
+                float rightEye = fillEllipse(p, rightC, eyeRRight, 0.035) * front * (1.0 - winkR);
+                float eyes = max(leftEye, rightEye);
+
+                float winkWidth = 0.135;
+                float winkLineLeft = lineMask(p.y - (leftC.y - 0.004), 0.014, 0.009) *
+                    (1.0 - smoothstep(winkWidth, winkWidth + 0.020, abs(p.x - leftC.x))) * winkL * front;
+                float winkLineRight = lineMask(p.y - (rightC.y - 0.004), 0.014, 0.009) *
+                    (1.0 - smoothstep(winkWidth, winkWidth + 0.020, abs(p.x - rightC.x))) * winkR * front;
+                float winkLines = max(winkLineLeft, winkLineRight);
+
+                vec2 pupilOffset = vec2(look.x * 0.092, look.y * 0.118);
+                pupilOffset.y += sad * -0.012 + cry * -0.010;
+                pupilOffset.x += sideEye * 0.055 + confused * 0.024 - furious * 0.015;
+                vec2 crossOffsetL = vec2(0.070, -0.030) * cross;
+                vec2 crossOffsetR = vec2(-0.070, -0.030) * cross;
+                vec2 kissOffset = vec2(0.0, -0.010) * kiss;
+                float blinkAverage = max((uBlinkLeft + uBlinkRight) * 0.5, 0.07);
+                vec2 pupilR = vec2(0.055, 0.064 * blinkAverage);
+                pupilR *= mix(1.0, 1.10, wide + happy * 0.35);
+                pupilR *= mix(1.0, 0.92, angry + laugh * 0.2 + grin * 0.18);
+                float lp = fillEllipse(p, leftC + pupilOffset + crossOffsetL + kissOffset, pupilR, 0.045) * leftEye * (1.0 - winkL);
+                float rp = fillEllipse(p, rightC + pupilOffset + crossOffsetR + kissOffset, pupilR, 0.045) * rightEye * (1.0 - winkR);
+                float pupils = max(lp, rp);
+
+                // Sobrancelhas agora acompanham um pouco o olhar e mudam de formato conforme a emoção.
+                float browTrackX = look.x * 0.016;
+                float browTrackY = look.y * 0.020;
+                float browBaseLift = wide * 0.050 + happy * 0.010 + sad * 0.014 - sleepy * 0.018 - angry * 0.006 + laugh * 0.004 + cry * 0.008 + blush * 0.006;
+                float browLiftLeft = browBaseLift + winkL * 0.022 + sideEye * 0.016 + browTrackY + cry * 0.020 + blush * 0.008;
+                float browLiftRight = browBaseLift + winkR * 0.022 - sideEye * 0.004 + browTrackY + cry * 0.004 + blush * 0.008;
+                float browSlopeLeft = -angry * 0.20 - furious * 0.28 + sad * 0.09 + cross * 0.05 + sideEye * 0.06 - happy * 0.02 + sleepy * 0.03 + confused * 0.14 + cry * 0.08;
+                float browSlopeRight = angry * 0.20 + furious * 0.28 - sad * 0.09 - cross * 0.05 - sideEye * 0.02 + happy * 0.02 - sleepy * 0.03 - confused * 0.05 - cry * 0.02;
+                float browThickness = 0.018 + angry * 0.003 + furious * 0.005 + sleepy * 0.002 + wide * 0.002;
+                float browSoftness = 0.011 + happy * 0.001;
+                float browHalfWidth = 0.165 + happy * 0.010 + sleepy * 0.006 - tinyO * 0.012 + furious * 0.010;
+                float browCurveLeft = -0.004 * happy - 0.004 * laugh + 0.007 * sad + 0.004 * sleepy + cry * 0.010;
+                float browCurveRight = -0.004 * happy - 0.004 * laugh + 0.007 * sad + 0.004 * sleepy + cry * 0.004;
+                float browXL = (p.x - (leftC.x + browTrackX)) / browHalfWidth;
+                float browXR = (p.x - (rightC.x + browTrackX)) / browHalfWidth;
+                float browYL = 0.382 + browLiftLeft + browSlopeLeft * (p.x - (leftC.x + browTrackX)) + browCurveLeft * browXL * browXL;
+                float browYR = 0.382 + browLiftRight + browSlopeRight * (p.x - (rightC.x + browTrackX)) + browCurveRight * browXR * browXR;
+                float browRangeL = 1.0 - smoothstep(browHalfWidth, browHalfWidth + 0.030, abs(p.x - (leftC.x + browTrackX)));
+                float browRangeR = 1.0 - smoothstep(browHalfWidth, browHalfWidth + 0.030, abs(p.x - (rightC.x + browTrackX)));
+                float browL = lineMask(p.y - browYL, browThickness, browSoftness) * browRangeL * front;
+                float browR = lineMask(p.y - browYR, browThickness, browSoftness) * browRangeR * front;
+                float brows = max(browL, browR);
+
+                // Uma única boca por estado. Estados abertos nunca desenham o sorriso junto.
+                float expressionSum = clamp(wide + squint + winkL + winkR + meh + happy + sleepy + tinyO + laugh + sad + angry + cross + sideEye + kiss + grin + confused + cry + blush + furious, 0.0, 1.0);
+                float neutral = 1.0 - expressionSum;
+                float openAmount = smoothstep(0.03, 0.92, uMouthOpen);
+
+                float mouthHalf = mix(0.082, 0.108, uHover);
+                float mouthCurve = -0.245 - 0.045 * (1.0 - (p.x / mouthHalf) * (p.x / mouthHalf));
+                float mouthRange = 1.0 - smoothstep(mouthHalf, mouthHalf + 0.013, abs(p.x));
+                float neutralSmile = lineMask(p.y - mouthCurve, 0.010, 0.007) * mouthRange * front * (neutral + 0.78 * max(winkL, winkR));
+
+                float surprisedOpen = fillEllipse(p, vec2(0.0, -0.265), vec2(0.028 + 0.045 * openAmount, 0.028 + 0.045 * openAmount), 0.040) * front * wide;
+                float crossOpen = fillEllipse(p, vec2(0.0, -0.268), vec2(0.027 + 0.042 * openAmount, 0.027 + 0.042 * openAmount), 0.040) * front * cross;
+                float laughOpen = fillEllipse(p, vec2(0.0, -0.270), vec2(0.040 + 0.046 * openAmount, 0.040 + 0.046 * openAmount), 0.044) * front * laugh;
+                float tinyOpen = fillEllipse(p, vec2(0.0, -0.262), vec2(0.020 + 0.024 * openAmount, 0.020 + 0.024 * openAmount), 0.040) * front * tinyO;
+                float kissOpen = fillEllipse(p, vec2(0.0, -0.265), vec2(0.019 + 0.022 * openAmount, 0.019 + 0.022 * openAmount), 0.036) * front * kiss;
+
+                float happyHalf = 0.125;
+                float happyCurve = -0.250 - 0.050 * (1.0 - (p.x / happyHalf) * (p.x / happyHalf));
+                float happyRange = 1.0 - smoothstep(happyHalf, happyHalf + 0.015, abs(p.x));
+                float happyLine = lineMask(p.y - happyCurve, 0.011, 0.008) * happyRange * front * happy * (1.0 - openAmount);
+                float happyOpen = fillEllipse(p, vec2(0.0, -0.265), vec2(0.032 + 0.036 * openAmount, 0.032 + 0.036 * openAmount), 0.040) * front * happy * openAmount;
+
+                float sleepyLine = lineMask(p.y + 0.255, 0.009, 0.007) *
+                    (1.0 - smoothstep(0.10, 0.13, abs(p.x))) * front * sleepy;
+                float sideLine = lineMask(p.y + 0.268 + p.x * 0.020, 0.009, 0.007) *
+                    (1.0 - smoothstep(0.12, 0.145, abs(p.x))) * front * sideEye;
+                float grinLine = lineMask(p.y + 0.240 - 0.050 * (1.0 - (p.x / 0.140) * (p.x / 0.140)), 0.011, 0.008) *
+                    (1.0 - smoothstep(0.155, 0.175, abs(p.x))) * front * grin;
+                float sadLine = lineMask(p.y + 0.225 + 0.045 * (1.0 - (p.x / 0.095) * (p.x / 0.095)), 0.010, 0.007) *
+                    (1.0 - smoothstep(0.105, 0.125, abs(p.x))) * front * sad;
+                float angryLine = lineMask(p.y + 0.270, 0.010, 0.007) *
+                    (1.0 - smoothstep(0.135, 0.155, abs(p.x))) * front * angry;
+                float mehLine = lineMask(p.y + 0.268, 0.010, 0.007) *
+                    (1.0 - smoothstep(0.12, 0.145, abs(p.x))) * front * meh;
+                float confusedLine = lineMask(p.y + 0.254 - p.x * 0.020, 0.010, 0.007) *
+                    (1.0 - smoothstep(0.12, 0.145, abs(p.x))) * front * confused;
+                float cryLine = lineMask(p.y + 0.220 + 0.055 * (1.0 - (p.x / 0.095) * (p.x / 0.095)), 0.010, 0.007) *
+                    (1.0 - smoothstep(0.105, 0.125, abs(p.x))) * front * cry;
+                float blushLine = lineMask(p.y - (-0.250 - 0.043 * (1.0 - (p.x / 0.120) * (p.x / 0.120))), 0.010, 0.007) *
+                    (1.0 - smoothstep(0.120, 0.142, abs(p.x))) * front * blush;
+                float furiousOpen = fillEllipse(p, vec2(0.0, -0.267), vec2(0.030 + 0.030 * openAmount, 0.030 + 0.030 * openAmount), 0.038) * front * furious;
+                float furiousLine = lineMask(p.y + 0.276, 0.011, 0.008) *
+                    (1.0 - smoothstep(0.132, 0.150, abs(p.x))) * front * furious * (1.0 - openAmount);
+
+                float openMouth = max(max(max(surprisedOpen, crossOpen), max(laughOpen, tinyOpen)), max(max(kissOpen, happyOpen), furiousOpen));
+                float lineMouth = max(max(max(neutralSmile, happyLine), max(sleepyLine, sideLine)), max(max(max(grinLine, sadLine), max(angryLine, mehLine)), max(max(confusedLine, cryLine), max(blushLine, furiousLine))));
+                float mouth = max(openMouth, lineMouth);
+
+                float cheekL = fillEllipse(p, vec2(-0.18, -0.02), vec2(0.085, 0.055), 0.035) * front * blush;
+                float cheekR = fillEllipse(p, vec2(0.18, -0.02), vec2(0.085, 0.055), 0.035) * front * blush;
+                float tears = max(
+                    fillEllipse(p, leftC + vec2(0.020, -0.185), vec2(0.030, 0.068), 0.030) * front * cry,
+                    fillEllipse(p, rightC + vec2(-0.020, -0.185), vec2(0.030, 0.068), 0.030) * front * cry
+                );
+
+                vec3 eyeWhite = vec3(1.15, 1.15, 1.12);
+                vec3 ink = vec3(0.025, 0.025, 0.024);
+                vec3 mouthBlack = vec3(0.006, 0.006, 0.006);
+                vec3 cheekColor = vec3(1.0, 0.58, 0.63);
+                vec3 tearColor = vec3(0.52, 0.88, 1.0);
+                color = mix(color, cheekColor, max(cheekL, cheekR) * 0.55);
+                color = mix(color, eyeWhite, eyes);
+                color = mix(color, ink, max(max(pupils, brows), winkLines));
+                color = mix(color, mouthBlack, mouth);
+                color = mix(color, tearColor, tears);
+
+                float pulse = 0.022 * sin(uTime * 1.85 + vObjPos.y * 2.6);
+                color += yellow * pulse;
+
+                if (uGlow > 0.5) {
+                    vec3 glowColor = color * 1.12;
+                    gl_FragColor = vec4(glowColor, glowAlpha);
+                } else {
+                    gl_FragColor = vec4(color, dotAlpha);
+                }
+            }
+        `;
+
+        const coreMaterial = new THREE.ShaderMaterial({
+            uniforms,
+            vertexShader,
+            fragmentShader,
+            transparent: true,
+            depthTest: true,
+            depthWrite: true,
+            blending: THREE.NormalBlending
+        });
+
+        const glowUniforms = {
+            ...uniforms,
+            uPointScale: { value: 1.24 },
+            uGlow: { value: 1 }
+        };
+        const glowMaterial = new THREE.ShaderMaterial({
+            uniforms: glowUniforms,
+            vertexShader,
+            fragmentShader,
+            transparent: true,
+            depthTest: true,
+            depthWrite: false,
+            blending: THREE.AdditiveBlending
+        });
+
+        const glowLeds = new THREE.Points(ledGeometry, glowMaterial);
+        glowLeds.renderOrder = 1;
+        sphereGroup.add(glowLeds);
+
+        const leds = new THREE.Points(ledGeometry, coreMaterial);
+        leds.renderOrder = 2;
+        sphereGroup.add(leds);
+
+        // Esfera interna preta com pontos discretos para bloquear a luz traseira.
+        const INNER_RADIUS = RADIUS * 0.91;
+        const INNER_COUNT = 30000;
+        const innerPositions = new Float32Array(INNER_COUNT * 3);
+        for (let i = 0; i < INNER_COUNT; i++) {
+            const y = 1 - (i / (INNER_COUNT - 1)) * 2;
+            const r = Math.sqrt(Math.max(0, 1 - y * y));
+            const theta = golden * i;
+            innerPositions[i * 3] = Math.cos(theta) * r * INNER_RADIUS;
+            innerPositions[i * 3 + 1] = y * INNER_RADIUS;
+            innerPositions[i * 3 + 2] = Math.sin(theta) * r * INNER_RADIUS;
+        }
+        const innerGeometry = new THREE.BufferGeometry();
+        innerGeometry.setAttribute('position', new THREE.BufferAttribute(innerPositions, 3));
+        const innerMaterial = new THREE.PointsMaterial({
+            color: 0x050505,
+            size: 0.010,
+            sizeAttenuation: true,
+            transparent: true,
+            opacity: 0.82,
+            depthTest: true,
+            depthWrite: true
+        });
+        const innerLeds = new THREE.Points(innerGeometry, innerMaterial);
+        innerLeds.renderOrder = 0;
+        sphereGroup.add(innerLeds);
+
+        const blackCore = new THREE.Mesh(
+            new THREE.IcosahedronGeometry(RADIUS * 0.86, 5),
+            new THREE.MeshBasicMaterial({ color: 0x020202 })
+        );
+        blackCore.renderOrder = -1;
+        sphereGroup.add(blackCore);
+
+        const hitSphere = new THREE.Mesh(
+            new THREE.IcosahedronGeometry(RADIUS, 3),
+            new THREE.MeshBasicMaterial({ transparent: true, opacity: 0, depthWrite: false })
+        );
+        sphereGroup.add(hitSphere);
+
+        const pointer = new THREE.Vector2(0, 0);
+        const targetLook = new THREE.Vector2(0, 0);
+        const smoothLook = new THREE.Vector2(0, 0);
+        const raycaster = new THREE.Raycaster();
+        const hitLocal = new THREE.Vector3();
+        const drag = {
+            active: false,
+            pointerId: null,
+            startClientX: 0,
+            startClientY: 0,
+            lastClientX: 0,
+            lastClientY: 0,
+            startX: 0,
+            startY: 0,
+            tiltX: 0,
+            tiltY: 0
+        };
+
+        let pointerActive = false;
+        let frameCounter = 0;
+        let rafId = 0;
+        let running = false;
+        let inViewport = true;
+        let pageVisible = !document.hidden;
+        let lastTime = performance.now();
+        let blinkStart = 0;
+        let blinkDuration = 160;
+        let blinkLagMs = 0;
+        let blinkDoublePending = false;
+        let secondBlinkAt = 0;
+        let nextBlink = performance.now() + 1200 + Math.random() * 2200;
+        let expressionStart = 0;
+        let expressionDuration = 0;
+        let expressionUntil = 0;
+        let nextExpression = performance.now() + 2400 + Math.random() * 2600;
+        let expressionCooldown = 0;
+        let lastPointerX = 0;
+        let lastPointerY = 0;
+        let lastPointerTime = performance.now();
+        let projectsHover = false;
+        let targetPointScale = 1.0;
+        let targetGlowScale = 1.34;
+        let motionType = 0;
+        let motionUntil = 0;
+        let motionStart = 0;
+
+        // Etapa 2: Easter eggs e reações do usuário.
+        let lastActivityAt = performance.now();
+        let idleReactionCooldownUntil = 0;
+        let clickBurst = [];
+        let clickCooldownUntil = 0;
+        let scrollLastY = window.scrollY;
+        let scrollLastTime = performance.now();
+        let scrollLastDirection = 0;
+        let scrollReversals = [];
+        let scrollEasterCooldownUntil = 0;
+        let slowScrollStartedAt = 0;
+        let slowScrollCooldownUntil = 0;
+        let scrollLookUntil = 0;
+        let scrollLookY = 0;
+        let circleLastAngle = null;
+        let circleAccum = 0;
+        let circleStartedAt = 0;
+        let circleCooldownUntil = 0;
+        let specialFlipActive = false;
+        let specialFlipStart = 0;
+        let specialFlipDuration = 1750;
+        let faceMiddleHover = false;
+
+        // Etapa 3: evento sazonal do cachecol.
+        const SCARF_INTERVAL = 200 * 60 * 1000;
+        const SCARF_DURATION = 200 * 60 * 1000;
+        const SCARF_CHANCE = 0.38;
+        const scarfStorageKey = 'portfolioSphereScarfV1';
+        let scarfState = { month: -1, activeUntil: 0, nextEligibleAt: 0, color: '#f4c400' };
+        const ACCESSORY_DURATION = 3 * 60 * 1000;
+        const ACCESSORY_INTERVAL = 75 * 60 * 1000;
+        const ACCESSORY_CHANCE = 0.30;
+        const accessoryStorageKey = 'portfolioSphereAccessoryV1';
+        let accessoryState = { type: '', activeUntil: 0, nextEligibleAt: 0, month: -1 };
+        let stage3LastCheck = 0;
+        let spherePointerInside = false;
+        let stableHoverSince = 0;
+        let stableHoverCooldownUntil = 0;
+        let lastStableX = 0;
+        let lastStableY = 0;
+        let keyEggBuffer = '';
+        let keyEggCooldownUntil = 0;
+
+        // Etapa 4: personalidade / gestos de cabeça mais visíveis.
+        let headGestureType = 0;
+        let headGestureStart = 0;
+        let headGestureDuration = 0;
+        let nextHeadGestureAt = performance.now() + 5200 + Math.random() * 4200;
+        let closedEyesUntil = 0;
+        let closedEyesStarted = 0;
+        let closedEyesDuration = 0;
+
+        // Etapa 5: reações contextuais + olhos liderando a cabeça + pequenas sequências.
+        const headFollowLook = new THREE.Vector2(0, 0);
+        let stage5LookOverrideUntil = 0;
+        const stage5LookTarget = new THREE.Vector2(0, 0);
+        let stage5Sequence = [];
+        let stage5SequenceIndex = 0;
+        let stage5NextStepAt = 0;
+        let pendingSectionReaction = '';
+        let sectionReactionCooldownUntil = 0;
+        let lastSectionReaction = '';
+
+        function setExpression(mode, duration = 900) {
+            const now = performance.now();
+            uniforms.uExpression.value = mode;
+            expressionStart = now;
+            expressionDuration = duration;
+            expressionUntil = now + duration;
+            expressionCooldown = expressionUntil + 620;
         }
 
-        smoothLook.x += (targetLook.x - smoothLook.x) * 0.075;
-        smoothLook.y += (targetLook.y - smoothLook.y) * 0.075;
-        uniforms.uLook.value.set(smoothLook.x, smoothLook.y);
-
-        // Micro rotação mantém a sensação 3D sem tirar a face da frente.
-        if (!drag.active) {
-            const ry = smoothLook.x * 0.025;
-            const rx = -smoothLook.y * 0.018;
-            sphereGroup.rotation.y += (ry - sphereGroup.rotation.y) * 0.05;
-            sphereGroup.rotation.x += (rx - sphereGroup.rotation.x) * 0.05;
+        function setHeadMotion(type = 0, duration = 900) {
+            motionType = type;
+            motionStart = performance.now();
+            motionUntil = motionStart + duration;
         }
 
-        composer.render();
+        function startHeadGesture(type, duration = 2400) {
+            if (drag.active || specialFlipActive) return;
+            headGestureType = type;
+            headGestureStart = performance.now();
+            headGestureDuration = duration;
+        }
+
+        function closeBothEyes(duration = 520) {
+            const now = performance.now();
+            closedEyesStarted = now;
+            closedEyesDuration = duration;
+            closedEyesUntil = now + duration;
+        }
+
+        function updateClosedEyes(now) {
+            if (!closedEyesUntil) return;
+            if (now >= closedEyesUntil) {
+                closedEyesUntil = 0;
+                uniforms.uBlinkLeft.value = 1;
+                uniforms.uBlinkRight.value = 1;
+                return;
+            }
+            const t = THREE.MathUtils.clamp((now - closedEyesStarted) / Math.max(1, closedEyesDuration), 0, 1);
+            // Fecha suavemente, segura um pouco e reabre.
+            let v;
+            if (t < 0.24) {
+                const q = t / 0.24;
+                v = 1.0 - q * q;
+            } else if (t < 0.72) {
+                v = 0.018;
+            } else {
+                const q = (t - 0.72) / 0.28;
+                v = 0.018 + (1.0 - 0.018) * (q * q * (3.0 - 2.0 * q));
+            }
+            uniforms.uBlinkLeft.value = v;
+            uniforms.uBlinkRight.value = v;
+        }
+
+        function maybeStartStage4Gesture(now) {
+            if (!inViewport || drag.active || specialFlipActive || expressionUntil || headGestureType || now < nextHeadGestureAt) return;
+
+            const pick = Math.floor(Math.random() * 5);
+            if (pick === 0) {
+                // Olha para esquerda e direita com a cabeça.
+                startHeadGesture(1, 3200);
+                setExpression(13, 2100);
+            } else if (pick === 1) {
+                // Inclinação diagonal + careta.
+                startHeadGesture(2, 2800);
+                setExpression(Math.random() < 0.5 ? 14 : 15, 2100);
+            } else if (pick === 2) {
+                // Fecha os olhos e faz um pequeno "hmm".
+                startHeadGesture(3, 2400);
+                setExpression(6, 1800);
+                closeBothEyes(650);
+            } else if (pick === 3) {
+                // Desconfiada: vira para um lado, volta e olha para o outro.
+                startHeadGesture(4, 3000);
+                setExpression(5, 2200);
+            } else {
+                // Careta curta na diagonal.
+                startHeadGesture(5, 2600);
+                setExpression(Math.random() < 0.45 ? 19 : 11, 1900);
+            }
+
+            nextHeadGestureAt = now + 7000 + Math.random() * 6500;
+        }
+
+
+        function startStage5Sequence(steps) {
+            if (!Array.isArray(steps) || !steps.length || drag.active || specialFlipActive) return;
+            stage5Sequence = steps;
+            stage5SequenceIndex = 0;
+            stage5NextStepAt = performance.now();
+        }
+
+        function applyStage5Step(step, now) {
+            if (!step) return;
+            if (Array.isArray(step.look)) {
+                stage5LookTarget.set(step.look[0], step.look[1]);
+                stage5LookOverrideUntil = now + (step.lookFor || step.hold || 900);
+            }
+            if (typeof step.expr === 'number') setExpression(step.expr, step.exprFor || step.hold || 1200);
+            if (typeof step.head === 'number') startHeadGesture(step.head, step.headFor || step.hold || 1600);
+            if (step.nod) setHeadMotion(1, step.nodFor || 1200);
+            if (step.shake) setHeadMotion(2, step.shakeFor || 1200);
+            if (step.closeEyes) closeBothEyes(step.closeEyes);
+        }
+
+        function updateStage5Sequence(now) {
+            if (!stage5Sequence.length || now < stage5NextStepAt) return;
+            const step = stage5Sequence[stage5SequenceIndex];
+            applyStage5Step(step, now);
+            stage5SequenceIndex += 1;
+            if (stage5SequenceIndex >= stage5Sequence.length) {
+                stage5Sequence = [];
+                stage5SequenceIndex = 0;
+                stage5NextStepAt = 0;
+                return;
+            }
+            stage5NextStepAt = now + (step.hold || 900);
+        }
+
+        function triggerSectionReaction(sectionId) {
+            const now = performance.now();
+            if (!sectionId || now < sectionReactionCooldownUntil) return;
+            if (sectionId === lastSectionReaction && now < sectionReactionCooldownUntil + 5000) return;
+
+            lastSectionReaction = sectionId;
+            sectionReactionCooldownUntil = now + 5200;
+
+            if (sectionId === 'trajetoria') {
+                startStage5Sequence([
+                    { look: [-0.48, 0.15], expr: 13, head: 1, hold: 1150 },
+                    { look: [0.34, 0.05], expr: 6, nod: true, hold: 1350 }
+                ]);
+            } else if (sectionId === 'experiencia') {
+                startStage5Sequence([
+                    { look: [0.0, -0.18], expr: 5, head: 4, hold: 1100 },
+                    { look: [0.0, 0.02], expr: 6, nod: true, hold: 1450 }
+                ]);
+            } else if (sectionId === 'habilidades') {
+                startStage5Sequence([
+                    { look: [0.40, 0.08], expr: 2, head: 4, hold: 1100 },
+                    { look: [-0.28, 0.04], expr: 15, head: 1, hold: 1350 }
+                ]);
+            } else if (sectionId === 'projetos') {
+                startStage5Sequence([
+                    { look: [0.0, -0.10], expr: 6, nod: true, hold: 1200 },
+                    { look: [0.28, 0.08], expr: 9, head: 2, closeEyes: 430, hold: 1500 }
+                ]);
+            } else if (sectionId === 'contato') {
+                startStage5Sequence([
+                    { look: [0.34, 0.10], expr: 18, head: 2, hold: 1250 },
+                    { look: [0.0, 0.0], expr: 6, nod: true, hold: 1200 }
+                ]);
+            }
+        }
+
+        function maybeRunPendingSectionReaction() {
+            if (!pendingSectionReaction || !inViewport || drag.active) return;
+            const id = pendingSectionReaction;
+            pendingSectionReaction = '';
+            triggerSectionReaction(id);
+        }
+
+        function markActivity() {
+            lastActivityAt = performance.now();
+        }
+
+        function triggerDizzy(duration = 1450) {
+            const now = performance.now();
+            if (now < circleCooldownUntil || drag.active) return;
+            circleCooldownUntil = now + 11000;
+            setExpression(12, duration);
+            setHeadMotion(2, Math.min(duration, 1050));
+        }
+
+        function triggerScrollNauseaFlip() {
+            const now = performance.now();
+            if (specialFlipActive || now < scrollEasterCooldownUntil || drag.active) return;
+            scrollEasterCooldownUntil = now + 18000;
+            specialFlipActive = true;
+            specialFlipStart = now;
+            setExpression(12, specialFlipDuration);
+            setHeadMotion(2, 650);
+            targetLook.set(0.0, -0.12);
+        }
+
+        function lookTowardElement(el) {
+            if (!el || !renderer || !renderer.domElement) return false;
+            const targetRect = el.getBoundingClientRect();
+            const canvasRect = renderer.domElement.getBoundingClientRect();
+            if (!targetRect.width || !targetRect.height || !canvasRect.width || !canvasRect.height) return false;
+            const cx = targetRect.left + targetRect.width * 0.5;
+            const cy = targetRect.top + targetRect.height * 0.5;
+            pointer.x = ((cx - canvasRect.left) / canvasRect.width) * 2 - 1;
+            pointer.y = -((cy - canvasRect.top) / canvasRect.height) * 2 + 1;
+            pointerActive = true;
+            return true;
+        }
+
+        function getScarfColorByMonth(monthIndex) {
+            const palette = ['#6ec1ff', '#ff5f86', '#54d8b1', '#b78cff', '#5dc06a', '#f08a36', '#5da1ff', '#d97a34', '#f1c40f', '#ff6fae', '#4c8dff', '#d84e4e'];
+            return palette[monthIndex] || '#f4c400';
+        }
+
+        function saveScarfState() {
+            try { localStorage.setItem(scarfStorageKey, JSON.stringify(scarfState)); } catch (e) {}
+        }
+
+        function applyScarfColor(color) {
+            if (!scarfEl) return;
+            scarfEl.style.setProperty('--scarf-color', color);
+        }
+
+        function showScarf(animate = false) {
+            if (!scarfEl) return;
+            scarfEl.classList.remove('is-hiding');
+            scarfEl.classList.add('is-visible');
+            if (animate) {
+                scarfEl.classList.remove('is-flying');
+                void scarfEl.offsetWidth;
+                scarfEl.classList.add('is-flying');
+            }
+        }
+
+        function hideScarf(animate = false) {
+            if (!scarfEl) return;
+            scarfEl.classList.remove('is-flying');
+            if (animate) {
+                scarfEl.classList.add('is-hiding');
+                window.setTimeout(() => {
+                    scarfEl.classList.remove('is-hiding');
+                    scarfEl.classList.remove('is-visible');
+                }, 1150);
+            } else {
+                scarfEl.classList.remove('is-hiding');
+                scarfEl.classList.remove('is-visible');
+            }
+        }
+
+        function setupScarfState() {
+            const now = Date.now();
+            const month = new Date().getMonth();
+            const color = getScarfColorByMonth(month);
+            scarfState = { month, activeUntil: 0, nextEligibleAt: now + SCARF_INTERVAL, color };
+            try {
+                const raw = localStorage.getItem(scarfStorageKey);
+                if (raw) {
+                    const saved = JSON.parse(raw);
+                    if (saved && typeof saved === 'object') {
+                        scarfState.month = typeof saved.month === 'number' ? saved.month : month;
+                        scarfState.activeUntil = Number(saved.activeUntil || 0);
+                        scarfState.nextEligibleAt = Number(saved.nextEligibleAt || (now + SCARF_INTERVAL));
+                        scarfState.color = saved.color || color;
+                    }
+                }
+            } catch (e) {}
+            if (scarfState.month !== month) {
+                scarfState.month = month;
+                scarfState.activeUntil = 0;
+                scarfState.nextEligibleAt = now + SCARF_INTERVAL;
+                scarfState.color = color;
+            }
+            scarfState.color = color;
+            applyScarfColor(color);
+            if (scarfState.activeUntil > now) {
+                showScarf(false);
+            } else {
+                hideScarf(false);
+            }
+            saveScarfState();
+        }
+
+        function maybeTriggerScarfEvent() {
+            const now = Date.now();
+            if (scarfState.activeUntil > now || now < scarfState.nextEligibleAt) return;
+            const activate = Math.random() < SCARF_CHANCE;
+            if (activate) {
+                scarfState.activeUntil = now + SCARF_DURATION;
+                scarfState.nextEligibleAt = scarfState.activeUntil + SCARF_INTERVAL;
+                applyScarfColor(scarfState.color);
+                showScarf(true);
+                setExpression(6, 1300);
+                setHeadMotion(1, 900);
+            } else {
+                scarfState.activeUntil = 0;
+                scarfState.nextEligibleAt = now + SCARF_INTERVAL;
+            }
+            saveScarfState();
+        }
+
+        function maintainScarfState() {
+            if (!scarfEl) return;
+            const now = Date.now();
+            if (scarfState.activeUntil > 0 && now > scarfState.activeUntil) {
+                scarfState.activeUntil = 0;
+                scarfState.nextEligibleAt = now + SCARF_INTERVAL;
+                hideScarf(true);
+                saveScarfState();
+            } else if (scarfState.activeUntil <= 0) {
+                maybeTriggerScarfEvent();
+            }
+        }
+
+
+        function accessoryTypeForMonth(monthIndex) {
+            if (monthIndex === 0 || monthIndex === 1) return 'shades';
+            if (monthIndex === 5) return 'straw';
+            if (monthIndex === 6 || monthIndex === 7) return 'beanie';
+            if (monthIndex === 11) return 'santa';
+            return '';
+        }
+
+        function saveAccessoryState() {
+            try { localStorage.setItem(accessoryStorageKey, JSON.stringify(accessoryState)); } catch (e) {}
+        }
+
+        function setAccessoryClass(type) {
+            if (!accessoryEl) return;
+            accessoryEl.classList.remove('type-shades', 'type-straw', 'type-beanie', 'type-santa');
+            if (type) accessoryEl.classList.add('type-' + type);
+        }
+
+        function showAccessory(type, animate = false) {
+            if (!accessoryEl || !type) return;
+            setAccessoryClass(type);
+            accessoryEl.classList.remove('is-leaving');
+            accessoryEl.classList.add('is-visible');
+            if (animate) {
+                accessoryEl.classList.remove('is-entering');
+                void accessoryEl.offsetWidth;
+                accessoryEl.classList.add('is-entering');
+            }
+        }
+
+        function hideAccessory(animate = false) {
+            if (!accessoryEl) return;
+            accessoryEl.classList.remove('is-entering');
+            if (animate && accessoryEl.classList.contains('is-visible')) {
+                accessoryEl.classList.add('is-leaving');
+                window.setTimeout(() => {
+                    accessoryEl.classList.remove('is-leaving', 'is-visible');
+                    setAccessoryClass('');
+                }, 1500);
+            } else {
+                accessoryEl.classList.remove('is-leaving', 'is-visible');
+                setAccessoryClass('');
+            }
+        }
+
+        function setupAccessoryState() {
+            const now = Date.now();
+            const month = new Date().getMonth();
+            const type = accessoryTypeForMonth(month);
+            accessoryState = { type, activeUntil: 0, nextEligibleAt: now + ACCESSORY_INTERVAL, month };
+            try {
+                const raw = localStorage.getItem(accessoryStorageKey);
+                if (raw) {
+                    const saved = JSON.parse(raw);
+                    if (saved && typeof saved === 'object') {
+                        accessoryState.type = saved.type || type;
+                        accessoryState.activeUntil = Number(saved.activeUntil || 0);
+                        accessoryState.nextEligibleAt = Number(saved.nextEligibleAt || (now + ACCESSORY_INTERVAL));
+                        accessoryState.month = typeof saved.month === 'number' ? saved.month : month;
+                    }
+                }
+            } catch (e) {}
+            if (accessoryState.month !== month || accessoryState.type !== type) {
+                accessoryState = { type, activeUntil: 0, nextEligibleAt: now + ACCESSORY_INTERVAL, month };
+            }
+            if (type && accessoryState.activeUntil > now) showAccessory(type, false);
+            else hideAccessory(false);
+            saveAccessoryState();
+        }
+
+        function maintainAccessoryState() {
+            if (!accessoryEl) return;
+            const now = Date.now();
+            const type = accessoryTypeForMonth(new Date().getMonth());
+            if (!type) {
+                if (accessoryState.activeUntil) hideAccessory(true);
+                accessoryState = { type: '', activeUntil: 0, nextEligibleAt: now + ACCESSORY_INTERVAL, month: new Date().getMonth() };
+                saveAccessoryState();
+                return;
+            }
+            if (accessoryState.activeUntil > 0 && now > accessoryState.activeUntil) {
+                accessoryState.activeUntil = 0;
+                accessoryState.nextEligibleAt = now + ACCESSORY_INTERVAL;
+                hideAccessory(true);
+                saveAccessoryState();
+                return;
+            }
+            if (accessoryState.activeUntil > now || now < accessoryState.nextEligibleAt) return;
+            if (scarfState.activeUntil > now) {
+                accessoryState.nextEligibleAt = now + 25 * 60 * 1000;
+                saveAccessoryState();
+                return;
+            }
+            if (Math.random() < ACCESSORY_CHANCE) {
+                accessoryState.type = type;
+                accessoryState.activeUntil = now + ACCESSORY_DURATION;
+                accessoryState.nextEligibleAt = accessoryState.activeUntil + ACCESSORY_INTERVAL;
+                showAccessory(type, true);
+                setExpression(6, 1500);
+                setHeadMotion(3, 1250);
+            } else {
+                accessoryState.nextEligibleAt = now + ACCESSORY_INTERVAL;
+            }
+            saveAccessoryState();
+        }
+
+        setupScarfState();
+        setupAccessoryState();
+
+        function resize() {
+            const rect = host.getBoundingClientRect();
+            const width = Math.max(1, Math.round(rect.width));
+            const height = Math.max(1, Math.round(rect.height));
+            renderer.setSize(width, height, false);
+            camera.aspect = width / height;
+            camera.updateProjectionMatrix();
+            const dpr = Math.min(window.devicePixelRatio || 1, 2);
+            uniforms.uPixelRatio.value = dpr;
+        }
+
+        function updatePointer(event) {
+            const rect = renderer.domElement.getBoundingClientRect();
+            if (!rect.width || !rect.height) return;
+            pointer.x = ((event.clientX - rect.left) / rect.width) * 2 - 1;
+            pointer.y = -((event.clientY - rect.top) / rect.height) * 2 + 1;
+            pointer.x = THREE.MathUtils.clamp(pointer.x, -1.25, 1.25);
+            pointer.y = THREE.MathUtils.clamp(pointer.y, -1.25, 1.25);
+            pointerActive = true;
+
+            const now = performance.now();
+            markActivity();
+            const dt = Math.max(1, now - lastPointerTime);
+            const dx = event.clientX - lastPointerX;
+            const dy = event.clientY - lastPointerY;
+            const speed = Math.hypot(dx, dy) / dt;
+            if (speed > 1.55 && now > expressionCooldown && !drag.active) {
+                setExpression(1, 650); setHeadMotion(4, 520); // surpresa ao movimento rápido
+            }
+
+            // Mouse fazendo círculos ao redor da Sphere -> tontura.
+            const cx = rect.left + rect.width * 0.5;
+            const cy = rect.top + rect.height * 0.5;
+            const vx = event.clientX - cx;
+            const vy = event.clientY - cy;
+            const distance = Math.hypot(vx, vy);
+            if (distance > rect.width * 0.13 && distance < rect.width * 0.47 && now > circleCooldownUntil) {
+                const angle = Math.atan2(vy, vx);
+                if (circleLastAngle !== null) {
+                    let delta = angle - circleLastAngle;
+                    while (delta > Math.PI) delta -= Math.PI * 2;
+                    while (delta < -Math.PI) delta += Math.PI * 2;
+                    if (Math.abs(delta) < 0.75) circleAccum += delta;
+                } else {
+                    circleStartedAt = now;
+                }
+                circleLastAngle = angle;
+                if (now - circleStartedAt > 2600) {
+                    circleStartedAt = now;
+                    circleAccum = 0;
+                }
+                if (Math.abs(circleAccum) > Math.PI * 1.75) {
+                    circleAccum = 0;
+                    circleLastAngle = null;
+                    triggerDizzy(1500);
+                }
+            } else {
+                circleLastAngle = null;
+                circleAccum *= 0.85;
+            }
+
+            if (spherePointerInside) {
+                const stableMove = Math.hypot(event.clientX - lastStableX, event.clientY - lastStableY);
+                if (stableMove > 8) {
+                    stableHoverSince = now;
+                    lastStableX = event.clientX;
+                    lastStableY = event.clientY;
+                }
+            }
+
+            lastPointerX = event.clientX;
+            lastPointerY = event.clientY;
+            lastPointerTime = now;
+        }
+
+        function pointerHitsSphere(event) {
+            updatePointer(event);
+            raycaster.setFromCamera(pointer, camera);
+            return !!raycaster.intersectObject(hitSphere, false)[0];
+        }
+
+        shell.addEventListener('pointerdown', event => {
+            if (event.button !== undefined && event.button !== 0) return;
+            if (!pointerHitsSphere(event)) return;
+            event.preventDefault();
+            markActivity();
+            drag.active = true;
+            drag.pointerId = event.pointerId;
+            drag.startClientX = event.clientX;
+            drag.startClientY = event.clientY;
+            drag.lastClientX = event.clientX;
+            drag.lastClientY = event.clientY;
+            shell.classList.add('is-dragging');
+            try { shell.setPointerCapture(event.pointerId); } catch (_) {}
+        });
+
+        shell.addEventListener('click', () => {
+            const now = performance.now();
+            markActivity();
+            clickBurst = clickBurst.filter(t => now - t < 1800);
+            clickBurst.push(now);
+            if (clickBurst.length >= 5 && now > clickCooldownUntil) {
+                clickCooldownUntil = now + 9000;
+                clickBurst = [];
+                setExpression(Math.random() < 0.5 ? 11 : 19, 1450); // irritada / vermelha de raiva
+                setHeadMotion(2, 1150);  // nega com a cabeça
+                return;
+            }
+            if (now > expressionCooldown) {
+                setExpression(Math.random() < 0.5 ? 3 : 4, 850); setHeadMotion(3, 500); // piscadinha
+            }
+        });
+
+        window.addEventListener('pointermove', event => {
+            updatePointer(event);
+            if (!drag.active || event.pointerId !== drag.pointerId) return;
+            event.preventDefault();
+            const deltaX = event.clientX - drag.lastClientX;
+            const deltaY = event.clientY - drag.lastClientY;
+            drag.lastClientX = event.clientX;
+            drag.lastClientY = event.clientY;
+
+            // A esfera fica fixa no centro e apenas gira em 3D.
+            drag.tiltY = THREE.MathUtils.clamp(drag.tiltY + deltaX * 0.0038, -0.70, 0.70);
+            drag.tiltX = THREE.MathUtils.clamp(drag.tiltX + deltaY * 0.0032, -0.55, 0.55);
+        }, { passive: false });
+
+        function endDrag(event) {
+            if (!drag.active) return;
+            if (event?.pointerId !== undefined && event.pointerId !== drag.pointerId) return;
+            drag.active = false;
+            shell.classList.remove('is-dragging');
+            try { shell.releasePointerCapture(drag.pointerId); } catch (_) {}
+            drag.pointerId = null;
+        }
+        window.addEventListener('pointerup', endDrag);
+        window.addEventListener('pointercancel', endDrag);
+        window.addEventListener('pointerleave', () => {
+            if (!drag.active) pointerActive = false;
+        }, { passive: true });
+
+        window.addEventListener('scroll', () => {
+            const now = performance.now();
+            const y = window.scrollY;
+            const dy = y - scrollLastY;
+            const dt = Math.max(1, now - scrollLastTime);
+            const absDy = Math.abs(dy);
+            const direction = dy === 0 ? 0 : (dy > 0 ? 1 : -1);
+            markActivity();
+
+            // Reação imediata: olha para o sentido do scroll por alguns instantes.
+            if (direction) {
+                scrollLookY = direction > 0 ? -0.82 : 0.82;
+                scrollLookUntil = now + 420;
+            }
+
+            // Easter egg: scroll rápido alternando cima/baixo várias vezes.
+            if (absDy > 26 && dt < 180 && direction && scrollLastDirection && direction !== scrollLastDirection) {
+                scrollReversals.push(now);
+                scrollReversals = scrollReversals.filter(t => now - t < 2800);
+                if (scrollReversals.length >= 6 && inViewport) {
+                    scrollReversals = [];
+                    triggerScrollNauseaFlip();
+                }
+            }
+            if (direction) scrollLastDirection = direction;
+
+            // Scroll lento contínuo -> começa a ficar sonolenta.
+            if (absDy > 0 && absDy < 18 && dt < 260) {
+                if (!slowScrollStartedAt) slowScrollStartedAt = now;
+                if (now - slowScrollStartedAt > 3200 && now > slowScrollCooldownUntil && inViewport && !drag.active) {
+                    slowScrollCooldownUntil = now + 14000;
+                    slowScrollStartedAt = 0;
+                    setExpression(7, 1600);
+                    setHeadMotion(5, 1450);
+                }
+            } else if (absDy > 24) {
+                slowScrollStartedAt = 0;
+            }
+
+            scrollLastY = y;
+            scrollLastTime = now;
+        }, { passive: true });
+
+        shell.addEventListener('pointerenter', event => {
+            uniforms.uHover.value = 1;
+            spherePointerInside = true;
+            stableHoverSince = performance.now();
+            lastStableX = event.clientX || 0;
+            lastStableY = event.clientY || 0;
+        }, { passive: true });
+        shell.addEventListener('pointerleave', () => {
+            uniforms.uHover.value = drag.active ? 1 : 0;
+            spherePointerInside = false;
+            stableHoverSince = 0;
+            faceMiddleHover = false;
+        }, { passive: true });
+
+        if (projectsTrigger) {
+            projectsTrigger.addEventListener('mouseenter', () => {
+                projectsHover = true;
+                uniforms.uHover.value = 1;
+                if (performance.now() > expressionCooldown) { setExpression(6, 1200); setHeadMotion(1, 900); }
+                lookTowardElement(projectsTrigger);
+            }, { passive: true });
+            projectsTrigger.addEventListener('mouseleave', () => {
+                projectsHover = false;
+                if (!drag.active) uniforms.uHover.value = 0;
+            }, { passive: true });
+        }
+
+
+        window.addEventListener('keydown', event => {
+            const target = event.target;
+            if (target && (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.isContentEditable)) return;
+            if (event.key.length !== 1) return;
+            keyEggBuffer = (keyEggBuffer + event.key.toLowerCase()).slice(-8);
+            const now = performance.now();
+            if (now < keyEggCooldownUntil) return;
+            if (keyEggBuffer.endsWith('oi') || keyEggBuffer.endsWith('hello')) {
+                keyEggCooldownUntil = now + 12000;
+                keyEggBuffer = '';
+                setExpression(6, 1800);
+                setHeadMotion(1, 1450);
+            }
+        });
+
+        function beginBlink(now, fromDouble = false) {
+            blinkStart = now;
+            const slowBlink = Math.random() < 0.12;
+            blinkDuration = slowBlink ? 300 + Math.random() * 140 : 135 + Math.random() * 95;
+            blinkLagMs = (Math.random() - 0.5) * 24;
+            if (!fromDouble) blinkDoublePending = Math.random() < 0.17;
+        }
+
+        function blinkCurve(t) {
+            if (t <= 0.0 || t >= 1.0) return 1.0;
+            return Math.max(0.045, Math.abs(Math.cos(t * Math.PI)));
+        }
+
+        function updateBlink(now) {
+            if (closedEyesUntil) {
+                updateClosedEyes(now);
+                return;
+            }
+            if (!blinkStart && secondBlinkAt && now >= secondBlinkAt) {
+                secondBlinkAt = 0;
+                beginBlink(now, true);
+            }
+            if (!blinkStart && !secondBlinkAt && now >= nextBlink) {
+                beginBlink(now, false);
+            }
+            if (!blinkStart) return;
+
+            const leftT = (now - blinkStart) / blinkDuration;
+            const rightT = (now - blinkStart - blinkLagMs) / blinkDuration;
+            uniforms.uBlinkLeft.value = blinkCurve(leftT);
+            uniforms.uBlinkRight.value = blinkCurve(rightT);
+
+            if (leftT >= 1.0 && rightT >= 1.0) {
+                blinkStart = 0;
+                uniforms.uBlinkLeft.value = 1;
+                uniforms.uBlinkRight.value = 1;
+                if (blinkDoublePending) {
+                    blinkDoublePending = false;
+                    secondBlinkAt = now + 90 + Math.random() * 100;
+                } else {
+                    nextBlink = now + 1250 + Math.random() * 2800;
+                }
+            }
+        }
+
+        function updateExpression(now) {
+            if (expressionUntil && now >= expressionUntil) {
+                uniforms.uExpression.value = 0;
+                uniforms.uMouthOpen.value = 0;
+                expressionUntil = 0;
+            }
+
+            // Sem interação por um tempo -> sono/bocejo discreto.
+            if (inViewport && !drag.active && !expressionUntil && now - lastActivityAt > 11500 && now > idleReactionCooldownUntil) {
+                idleReactionCooldownUntil = now + 18000;
+                lastActivityAt = now;
+                setExpression(7, 1850);
+                setHeadMotion(5, 1650);
+            }
+            if (motionUntil && now >= motionUntil) {
+                motionType = 0;
+                motionUntil = 0;
+            }
+            if (!expressionUntil && now >= nextExpression && !drag.active) {
+                if (Math.random() < 0.80) {
+                    const options = [
+                        { mode: 1, motion: 4, dur: 760 },
+                        { mode: 2, motion: 2, dur: 880 },
+                        { mode: 3, motion: 3, dur: 720 },
+                        { mode: 4, motion: 3, dur: 720 },
+                        { mode: 5, motion: 2, dur: 920 },
+                        { mode: 6, motion: 1, dur: 980 },
+                        { mode: 7, motion: 5, dur: 920 },
+                        { mode: 8, motion: 0, dur: 860 },
+                        { mode: 9, motion: 6, dur: 980 },
+                        { mode: 10, motion: 5, dur: 920 },
+                        { mode: 11, motion: 2, dur: 980 },
+                        { mode: 12, motion: 0, dur: 760 },
+                        { mode: 13, motion: 7, dur: 980 },
+                        { mode: 14, motion: 8, dur: 920 },
+                        { mode: 15, motion: 7, dur: 980 },
+                        { mode: 16, motion: 4, dur: 980 },
+                        { mode: 17, motion: 5, dur: 1180 },
+                        { mode: 18, motion: 3, dur: 980 },
+                        { mode: 19, motion: 2, dur: 1100 },
+                        { mode: 1, motion: 8, dur: 900 }
+                    ];
+                    const pick = options[Math.floor(Math.random() * options.length)];
+                    setExpression(pick.mode, pick.dur + Math.random() * 360);
+                    if (pick.motion) setHeadMotion(pick.motion, pick.dur + 180);
+                }
+                nextExpression = now + 2200 + Math.random() * 3200;
+            }
+        }
+
+        function animate(now) {
+            if (!running) return;
+            rafId = requestAnimationFrame(animate);
+            const dt = Math.min(0.05, (now - lastTime) / 1000);
+            lastTime = now;
+            uniforms.uTime.value += dt;
+            updateBlink(now);
+            updateExpression(now);
+            maybeStartStage4Gesture(now);
+            updateStage5Sequence(now);
+            maybeRunPendingSectionReaction();
+
+            if (now - stage3LastCheck > 5000) {
+                stage3LastCheck = now;
+                maintainScarfState();
+                maintainAccessoryState();
+            }
+
+            if (spherePointerInside && stableHoverSince && now - stableHoverSince > 4200 && now > stableHoverCooldownUntil && now > expressionCooldown && !drag.active) {
+                stableHoverCooldownUntil = now + 16000;
+                stableHoverSince = now;
+                const hoverMode = Math.random() < 0.5 ? 14 : 3;
+                setExpression(hoverMode, 1700);
+                if (hoverMode === 14) {
+                    startHeadGesture(2, 2200);
+                } else {
+                    startHeadGesture(1, 2400);
+                }
+            }
+
+            if (expressionUntil && expressionDuration > 0) {
+                const ep = THREE.MathUtils.clamp((now - expressionStart) / expressionDuration, 0, 1);
+                let mouthEnvelope = 1.0;
+                if (ep < 0.20) mouthEnvelope = ep / 0.20;
+                else if (ep > 0.76) mouthEnvelope = (1.0 - ep) / 0.24;
+                mouthEnvelope = THREE.MathUtils.clamp(mouthEnvelope, 0, 1);
+                mouthEnvelope = mouthEnvelope * mouthEnvelope * (3.0 - 2.0 * mouthEnvelope);
+                uniforms.uMouthOpen.value += (mouthEnvelope - uniforms.uMouthOpen.value) * 0.22;
+            } else {
+                uniforms.uMouthOpen.value += (0 - uniforms.uMouthOpen.value) * 0.20;
+            }
+
+            targetPointScale = projectsHover ? 1.12 : 1.0;
+            targetGlowScale = projectsHover ? 1.40 : 1.24;
+            uniforms.uPointScale.value += (targetPointScale - uniforms.uPointScale.value) * 0.08;
+            glowUniforms.uPointScale.value += (targetGlowScale - glowUniforms.uPointScale.value) * 0.08;
+
+            if (projectsHover) {
+                lookTowardElement(projectsTrigger);
+            }
+
+            frameCounter = (frameCounter + 1) % 3;
+            if (frameCounter === 0 && pointerActive && !drag.active) {
+                raycaster.setFromCamera(pointer, camera);
+                const hit = raycaster.intersectObject(hitSphere, false)[0];
+                if (hit) {
+                    hitLocal.copy(hit.point);
+                    hitSphere.worldToLocal(hitLocal).divideScalar(RADIUS);
+                    targetLook.set(hitLocal.x * 1.65, hitLocal.y * 1.65);
+                    const nearFaceMiddle = Math.abs(hitLocal.x) < 0.18 && hitLocal.y < 0.10 && hitLocal.y > -0.24;
+                    if (nearFaceMiddle) {
+                        if (!faceMiddleHover && now > expressionCooldown && !projectsHover) {
+                            setExpression(12, 700);
+                        }
+                        faceMiddleHover = true;
+                    } else {
+                        faceMiddleHover = false;
+                    }
+                } else {
+                    faceMiddleHover = false;
+                    targetLook.set(pointer.x * 0.72, pointer.y * 0.56);
+                }
+                targetLook.x = THREE.MathUtils.clamp(targetLook.x, -1, 1);
+                targetLook.y = THREE.MathUtils.clamp(targetLook.y, -1, 1);
+            } else if (!pointerActive && !projectsHover) {
+                const idleX = Math.sin(now * 0.00072) * 0.09 + Math.sin(now * 0.00131) * 0.025;
+                const idleY = Math.cos(now * 0.00063) * 0.055;
+                targetLook.set(idleX, idleY);
+            }
+
+            if (now < scrollLookUntil && !projectsHover && !drag.active) {
+                targetLook.y = scrollLookY;
+            }
+
+            if (now < stage5LookOverrideUntil && !drag.active) {
+                targetLook.lerp(stage5LookTarget, 0.30);
+            }
+
+            // Os olhos chegam primeiro; a cabeça acompanha com atraso leve.
+            smoothLook.x += (targetLook.x - smoothLook.x) * 0.135;
+            smoothLook.y += (targetLook.y - smoothLook.y) * 0.135;
+            uniforms.uLook.value.set(smoothLook.x, smoothLook.y);
+            headFollowLook.x += (smoothLook.x - headFollowLook.x) * 0.038;
+            headFollowLook.y += (smoothLook.y - headFollowLook.y) * 0.038;
+
+            // A esfera agora tem leitura 3D: reage ao cursor e inclina mais durante o arraste.
+            const ambientYaw = Math.sin(now * 0.00052) * 0.032;
+            const ambientPitch = Math.cos(now * 0.00044) * 0.016;
+            const idleTargetY = headFollowLook.x * 0.072 + ambientYaw;
+            const idleTargetX = -headFollowLook.y * 0.052 + ambientPitch;
+            let motionRotY = 0;
+            let motionRotX = 0;
+            let motionRotZ = 0;
+            if (motionType && motionUntil) {
+                const t = THREE.MathUtils.clamp((now - motionStart) / Math.max(1, (motionUntil - motionStart)), 0, 1);
+                const decay = Math.sin(t * Math.PI);
+                if (motionType === 1) { // concorda
+                    motionRotX = Math.sin(t * Math.PI * 4.0) * 0.13 * decay;
+                } else if (motionType === 2) { // nega
+                    motionRotY = Math.sin(t * Math.PI * 5.0) * 0.16 * decay;
+                } else if (motionType === 3) { // inclina curioso/fofo
+                    motionRotY = Math.sin(t * Math.PI) * 0.13;
+                    motionRotX = -Math.sin(t * Math.PI) * 0.045;
+                    motionRotZ = Math.sin(t * Math.PI) * 0.05;
+                } else if (motionType === 4) { // susto: recua e volta
+                    motionRotX = -Math.sin(t * Math.PI) * 0.18;
+                } else if (motionType === 5) { // sono/triste: cai e recupera
+                    motionRotX = Math.sin(t * Math.PI) * 0.14;
+                    motionRotY = Math.sin(t * Math.PI) * 0.035;
+                } else if (motionType === 6) { // risada
+                    motionRotX = Math.sin(t * Math.PI * 5.0) * 0.075 * decay;
+                    motionRotY = Math.sin(t * Math.PI * 3.0) * 0.045 * decay;
+                    motionRotZ = Math.sin(t * Math.PI * 4.0) * 0.04 * decay;
+                } else if (motionType === 7) { // rotação de cabeça para esquerda e direita
+                    motionRotY = Math.sin(t * Math.PI * 2.0) * 0.34 * decay;
+                    motionRotX = Math.sin(t * Math.PI) * 0.055;
+                    motionRotZ = Math.sin(t * Math.PI * 2.0) * 0.035 * decay;
+                } else if (motionType === 8) { // rotação diagonal com careta
+                    motionRotY = Math.sin(t * Math.PI * 2.0) * 0.22 * decay;
+                    motionRotX = -Math.sin(t * Math.PI) * 0.13;
+                    motionRotZ = Math.sin(t * Math.PI) * 0.15;
+                }
+            }
+            // Gestos de cabeça da Etapa 4. Não são giros completos: são rotações de "cabeça".
+            let gestureRotX = 0;
+            let gestureRotY = 0;
+            let gestureRotZ = 0;
+            if (headGestureType && headGestureDuration > 0) {
+                const gt = THREE.MathUtils.clamp((now - headGestureStart) / headGestureDuration, 0, 1);
+                const envelope = Math.sin(gt * Math.PI);
+
+                if (headGestureType === 1) {
+                    // esquerda -> direita -> centro
+                    gestureRotY = Math.sin(gt * Math.PI * 2.0) * 0.36 * envelope;
+                    gestureRotZ = Math.sin(gt * Math.PI * 2.0) * 0.035 * envelope;
+                } else if (headGestureType === 2) {
+                    // diagonal brincalhona
+                    gestureRotY = Math.sin(gt * Math.PI) * 0.22;
+                    gestureRotX = -Math.sin(gt * Math.PI) * 0.10;
+                    gestureRotZ = Math.sin(gt * Math.PI) * 0.16;
+                } else if (headGestureType === 3) {
+                    // fecha os olhos e inclina levemente
+                    gestureRotX = Math.sin(gt * Math.PI) * 0.085;
+                    gestureRotZ = -Math.sin(gt * Math.PI) * 0.075;
+                } else if (headGestureType === 4) {
+                    // desconfiada: dois lados com pausa visual no meio
+                    gestureRotY = Math.sin(gt * Math.PI * 3.0) * 0.25 * envelope;
+                    gestureRotX = -Math.sin(gt * Math.PI) * 0.045;
+                } else if (headGestureType === 5) {
+                    // careta diagonal mais marcada
+                    gestureRotY = -Math.sin(gt * Math.PI) * 0.19;
+                    gestureRotX = Math.sin(gt * Math.PI) * 0.085;
+                    gestureRotZ = -Math.sin(gt * Math.PI) * 0.18;
+                }
+
+                if (gt >= 1.0) {
+                    headGestureType = 0;
+                    headGestureDuration = 0;
+                }
+            }
+
+            const targetRotY = (drag.active ? drag.tiltY : idleTargetY) + motionRotY + gestureRotY;
+            const targetRotX = (drag.active ? drag.tiltX : idleTargetX) + motionRotX + gestureRotX;
+            const targetRotZ = motionRotZ + gestureRotZ;
+            sphereGroup.rotation.y += (targetRotY - sphereGroup.rotation.y) * (drag.active ? 0.24 : 0.13);
+
+            if (specialFlipActive) {
+                const ft = THREE.MathUtils.clamp((now - specialFlipStart) / specialFlipDuration, 0, 1);
+                let spinT = 0;
+                let nauseaWobble = 0;
+                if (ft < 0.24) {
+                    const nt = ft / 0.24;
+                    nauseaWobble = Math.sin(nt * Math.PI * 5.0) * 0.14 * (1.0 - nt * 0.35);
+                } else {
+                    const raw = THREE.MathUtils.clamp((ft - 0.24) / 0.64, 0, 1);
+                    spinT = raw < 0.5 ? 2.0 * raw * raw : 1.0 - Math.pow(-2.0 * raw + 2.0, 2.0) / 2.0;
+                }
+                sphereGroup.rotation.y += nauseaWobble;
+                sphereGroup.rotation.x = targetRotX + spinT * Math.PI * 2.0;
+                if (ft >= 1.0) {
+                    specialFlipActive = false;
+                    sphereGroup.rotation.x = targetRotX;
+                }
+            } else {
+                sphereGroup.rotation.x += (targetRotX - sphereGroup.rotation.x) * (drag.active ? 0.24 : 0.13);
+            }
+            sphereGroup.rotation.z += (targetRotZ - sphereGroup.rotation.z) * (drag.active ? 0.18 : 0.11);
+
+            if (!drag.active) {
+                drag.tiltX *= 0.88;
+                drag.tiltY *= 0.88;
+            }
+
+            renderer.render(scene, camera);
+        }
+
+        function startLoop() {
+            if (running || !inViewport || !pageVisible) return;
+            running = true;
+            lastTime = performance.now();
+            rafId = requestAnimationFrame(animate);
+        }
+        function stopLoop() {
+            if (!running) return;
+            running = false;
+            cancelAnimationFrame(rafId);
+            rafId = 0;
+        }
+
+
+        if (stage5Sections.length) {
+            const sectionObserver = new IntersectionObserver(entries => {
+                const visible = entries
+                    .filter(entry => entry.isIntersecting)
+                    .sort((a, b) => b.intersectionRatio - a.intersectionRatio)[0];
+                if (!visible || !visible.target?.id) return;
+                const id = visible.target.id;
+                if (inViewport && pageVisible) triggerSectionReaction(id);
+                else pendingSectionReaction = id;
+            }, { threshold: [0.24, 0.42, 0.62] });
+            stage5Sections.forEach(section => sectionObserver.observe(section));
+        }
+
+        const observer = new IntersectionObserver(([entry]) => {
+            inViewport = !!entry && entry.isIntersecting;
+            if (inViewport && pageVisible) startLoop();
+            else stopLoop();
+        }, { threshold: 0.08 });
+        observer.observe(shell);
+
+        document.addEventListener('visibilitychange', () => {
+            pageVisible = !document.hidden;
+            if (pageVisible && inViewport) startLoop();
+            else stopLoop();
+        });
+        window.addEventListener('resize', resize, { passive: true });
+
+        resize();
+        shell.classList.add('is-webgl-ready');
+        startLoop();
     }
-
-    function startLoop() {
-        if (running || !inViewport || !pageVisible) return;
-        running = true;
-        lastTime = performance.now();
-        rafId = requestAnimationFrame(animate);
-    }
-    function stopLoop() {
-        if (!running) return;
-        running = false;
-        cancelAnimationFrame(rafId);
-        rafId = 0;
-    }
-
-    const observer = new IntersectionObserver(([entry]) => {
-        inViewport = !!entry && entry.isIntersecting;
-        if (inViewport && pageVisible) startLoop();
-        else stopLoop();
-    }, { threshold:0.08 });
-    observer.observe(shell);
-
-    document.addEventListener('visibilitychange', () => {
-        pageVisible = !document.hidden;
-        if (pageVisible && inViewport) startLoop();
-        else stopLoop();
-    });
-    window.addEventListener('resize', resize, { passive:true });
-
-    resize();
-    shell.classList.add('is-webgl-ready');
-    startLoop();
 })();
