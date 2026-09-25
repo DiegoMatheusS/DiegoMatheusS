@@ -230,6 +230,19 @@
                 float shockBlue = step(38.5, uExpression) * (1.0 - step(39.5, uExpression));
                 float explodeHead = step(39.5, uExpression);
 
+                // A quebra acontece na própria casca da esfera, em coordenadas 3D.
+                // Conforme a emoção entra, o topo abre com borda irregular e revela o núcleo preto.
+                float fractureProgress = explodeHead * smoothstep(0.08, 0.42, exprEase);
+                float fractureAngle = atan(vObjPos.z, vObjPos.x);
+                float fractureBoundary = 0.635
+                    + 0.052 * sin(fractureAngle * 5.0 + 0.65)
+                    + 0.032 * sin(fractureAngle * 9.0 - 1.15)
+                    + 0.020 * sin(vObjPos.x * 19.0 + vObjPos.z * 16.0);
+                float fractureOpenBoundary = mix(1.08, fractureBoundary, fractureProgress);
+                float fractureHole = step(fractureOpenBoundary, vObjPos.y) * explodeHead;
+                float fractureEdge = (1.0 - smoothstep(0.016, 0.070, abs(vObjPos.y - fractureOpenBoundary))) * fractureProgress;
+                if (fractureHole > 0.5) discard;
+
                 float angerMorph = clamp(exprEase * 1.15, 0.0, 1.0);
                 float rage = clamp(furious + angry * angerMorph, 0.0, 1.0);
                 float angryHeat = clamp(angry * (0.24 + 0.58 * angerMorph) + furious, 0.0, 1.0);
@@ -246,7 +259,11 @@
                 float shockBlueTop = smoothstep(0.08, 0.86, p.y) * shockBlue * exprEase * front;
                 color = mix(color, vec3(0.40, 0.76, 1.0) * vDepthLight, shockBlueTop * 0.88);
                 float explodeWarmTop = smoothstep(0.25, 0.88, p.y) * explodeHead * exprEase * front;
-                color = mix(color, vec3(1.0, 0.80, 0.24) * vDepthLight, explodeWarmTop * 0.20);
+                color = mix(color, vec3(1.0, 0.80, 0.24) * vDepthLight, explodeWarmTop * 0.16);
+                // LEDs imediatamente abaixo da rachadura ficam quentes, como borda recém-rompida.
+                color = mix(color, vec3(1.0, 0.93, 0.46) * (vDepthLight * 1.06), fractureEdge * 0.96);
+                float fractureEdgeWhite = (1.0 - smoothstep(0.008, 0.026, abs(vObjPos.y - fractureOpenBoundary))) * fractureProgress;
+                color = mix(color, vec3(1.34, 1.34, 1.30), fractureEdgeWhite * 0.92);
 
                 float baseEyeY = 0.205;
                 baseEyeY *= mix(1.0, 1.26, wide * exprEase);
@@ -268,7 +285,8 @@
                 vec2 eyeRLeft = vec2(0.155, min(baseEyeY, maxEyeWhiteRadiusY) * max(uBlinkLeft, 0.018));
                 vec2 eyeRRight = vec2(0.155, min(baseEyeY, maxEyeWhiteRadiusY) * max(uBlinkRight, 0.018));
                 // Na piscadinha de um olho, removemos o branco daquele olho e desenhamos um risco preto.
-                float specialEyeMask = clamp(heartEyes + cool + starEyes + starJoy + money + dizzy + shockBlue + explodeHead, 0.0, 1.0);
+                float specialEyeBlend = smoothstep(0.28, 0.44, exprEase);
+                float specialEyeMask = clamp(heartEyes + cool + starEyes + starJoy + money + dizzy + shockBlue + explodeHead, 0.0, 1.0) * specialEyeBlend;
                 float leftEye = fillEllipse(p, leftC, eyeRLeft, 0.035) * front * (1.0 - winkL) * (1.0 - specialEyeMask);
                 float rightEye = fillEllipse(p, rightC, eyeRRight, 0.035) * front * (1.0 - winkR) * (1.0 - specialEyeMask);
                 float eyes = max(leftEye, rightEye);
@@ -336,8 +354,11 @@
                 float brows = max(browL, browR);
 
                 // Uma única boca por estado. Estados abertos nunca desenham o sorriso junto.
-                float expressionSum = clamp((wide + squint + winkL + winkR + meh + happy + sleepy + tinyO + laugh + sad + angry + cross + sideEye + kiss + grin + confused + cry + blush + furious + heartEyes + cool + laughTears + tongueFun + nauseous + worried + angel + nerd + thinking + eyeRoll + starEyes + scream + freezing + money + pleading + dizzy + smug + impressed + starJoy + shockBlue + explodeHead) * exprEase, 0.0, 1.0);
-                float neutral = 1.0 - expressionSum;
+                float expressionSum = clamp((wide + squint + winkL + winkR + meh + happy + sleepy + tinyO + laugh + sad + angry + cross + sideEye + kiss + grin + confused + cry + blush + furious + heartEyes + cool + laughTears + tongueFun + nauseous + worried + angel + nerd + thinking + eyeRoll + starEyes + scream + freezing + money + pleading + dizzy + smug + impressed + starJoy + shockBlue + explodeHead), 0.0, 1.0);
+                float hasEmotion = step(0.5, expressionSum);
+                // Há uma pequena troca limpa: o neutro sai antes da boca/efeito emocional entrar.
+                float neutral = 1.0 - hasEmotion * smoothstep(0.10, 0.24, exprEase);
+                float emotionFace = smoothstep(0.26, 0.42, exprEase);
                 float openAmount = smoothstep(0.03, 0.92, uMouthOpen);
 
                 float mouthHalf = mix(0.082, 0.108, uHover);
@@ -417,10 +438,10 @@
 
                 float openMouth = max(max(max(surprisedOpen, crossOpen), max(laughOpen, tinyOpen)),
                     max(max(max(kissOpen, happyOpen), furiousOpen), max(max(tongueOuter, worriedOpen), max(max(screamOpen, moneyOpen), max(dizzyOpen, max(impressedOpen, max(shockBlueOpen, explodeOpen)))))));
-                float lineMouth = max(max(max(neutralSmile, happyLine), max(sleepyLine, sideLine)),
-                    max(max(max(max(grinLine, sadLine), max(angryLine, mehLine)), max(max(confusedLine, cryLine), max(blushLine, furiousLine))),
-                    max(max(max(heartLine, coolLine), max(laughTearsLine, nauseousLine)), max(max(angelLine, nerdLine), max(max(thinkingLine, eyeRollLine), max(max(starLine, freezeLine), max(max(pleadingLine, smugLine), starJoyLine)))))));
-                float mouth = max(openMouth, lineMouth);
+                float emotionLineMouth = max(max(max(happyLine, sleepyLine), max(sideLine, grinLine)),
+                    max(max(max(max(sadLine, angryLine), max(mehLine, confusedLine)), max(max(cryLine, blushLine), max(furiousLine, heartLine))),
+                    max(max(max(coolLine, laughTearsLine), max(nauseousLine, angelLine)), max(max(nerdLine, thinkingLine), max(max(eyeRollLine, starLine), max(max(freezeLine, pleadingLine), max(smugLine, starJoyLine)))))));
+                float mouth = max(neutralSmile, max(openMouth, emotionLineMouth * emotionFace));
 
                 float cheekL = fillEllipse(p, vec2(-0.18, -0.02), vec2(0.085, 0.055), 0.035) * front * blush;
                 float cheekR = fillEllipse(p, vec2(0.18, -0.02), vec2(0.085, 0.055), 0.035) * front * blush;
@@ -457,13 +478,15 @@
                 float starR = starMask(p, rightC + vec2(0.0, 0.006), 0.190 + 0.035 * starJoy) * front * anyStar * exprEase;
                 float shockEyeL = fillEllipse(p, leftC + vec2(0.0, 0.006), vec2(0.172, 0.206), 0.032) * front * shockBlue * exprEase;
                 float shockEyeR = fillEllipse(p, rightC + vec2(0.0, 0.006), vec2(0.172, 0.206), 0.032) * front * shockBlue * exprEase;
-                float explodeEyeL = fillEllipse(p, leftC + vec2(0.0, 0.004), vec2(0.155, 0.190), 0.032) * front * explodeHead * exprEase;
-                float explodeEyeR = fillEllipse(p, rightC + vec2(0.0, 0.004), vec2(0.155, 0.190), 0.032) * front * explodeHead * exprEase;
+                float explodeEyeL = fillEllipse(p, leftC + vec2(0.0, 0.004), vec2(0.165, 0.202), 0.032) * front * explodeHead * exprEase;
+                float explodeEyeR = fillEllipse(p, rightC + vec2(0.0, 0.004), vec2(0.165, 0.202), 0.032) * front * explodeHead * exprEase;
                 float dizzyL = swirlMask(p, leftC, 0.170) * front * dizzy * exprEase;
                 float dizzyR = swirlMask(p, rightC, 0.170) * front * dizzy * exprEase;
-                float explodeCloud = max(max(cloudPuff(p, vec2(-0.11, 0.56), vec2(0.12, 0.08), 0.032), cloudPuff(p, vec2(0.11, 0.56), vec2(0.12, 0.08), 0.032)), max(cloudPuff(p, vec2(0.0, 0.62), vec2(0.15, 0.10), 0.032), cloudPuff(p, vec2(0.0, 0.50), vec2(0.070, 0.090), 0.028))) * front * explodeHead * exprEase;
-                float explodeCap = fillEllipse(p, vec2(0.0, 0.46), vec2(0.16, 0.040), 0.030) * front * explodeHead * exprEase;
-                float explodeBurst = starMask(p, vec2(0.0, 0.57), 0.30) * front * explodeHead * exprEase;
+                // A nuvem não é mais desenhada sobre a testa.
+                // Agora ela é geometria 3D que nasce do buraco real no topo.
+                float explodeCloud = 0.0;
+                float explodeCap = 0.0;
+                float explodeBurst = 0.0;
 
                 float moneyEyeL = fillEllipse(p, leftC, vec2(0.145, 0.135), 0.035) * front * money * exprEase;
                 float moneyEyeR = fillEllipse(p, rightC, vec2(0.145, 0.135), 0.035) * front * money * exprEase;
@@ -481,7 +504,7 @@
                 float freezeToothR = fillEllipse(p, vec2(0.048, -0.250), vec2(0.043, 0.030), 0.025) * front * freezing * exprEase;
                 float freezeTeeth = max(freezeToothL, freezeToothR);
 
-                vec3 eyeWhite = vec3(1.15, 1.15, 1.12);
+                vec3 eyeWhite = vec3(1.24, 1.24, 1.22);
                 vec3 ink = vec3(0.025, 0.025, 0.024);
                 vec3 mouthBlack = vec3(0.006, 0.006, 0.006);
                 vec3 cheekColor = vec3(1.0, 0.58, 0.63);
@@ -499,6 +522,7 @@
                 color = mix(color, cheekColor, max(cheekL, cheekR) * 0.55);
                 color = mix(color, eyeWhite, eyes);
                 color = mix(color, eyeWhite, max(max(starEyeBaseL, starEyeBaseR), max(max(shockEyeL, shockEyeR), max(explodeEyeL, explodeEyeR))));
+                color = mix(color, vec3(1.42, 1.42, 1.40), max(explodeEyeL, explodeEyeR));
                 color = mix(color, heartColor, max(heartL, heartR));
                 color = mix(color, glassesColor, glassesMask);
                 color = mix(color, haloColor, haloMask);
@@ -601,6 +625,216 @@
         );
         sphereGroup.add(hitSphere);
 
+        // Explosão 3D: fica presa ao mesmo espaço da Sphere.
+        // Assim acompanha a rotação da cabeça, respeita profundidade e nasce do interior aberto.
+        const explosion3D = new THREE.Group();
+        explosion3D.visible = false;
+        explosion3D.position.set(0, RADIUS * 0.58, 0);
+        sphereGroup.add(explosion3D);
+
+        const explosionFlashMat = new THREE.MeshBasicMaterial({
+            color: 0xff7a18,
+            transparent: true,
+            opacity: 0,
+            depthTest: true,
+            depthWrite: false,
+            blending: THREE.AdditiveBlending
+        });
+        const explosionFlash = new THREE.Mesh(
+            new THREE.SphereGeometry(0.22, 18, 12),
+            explosionFlashMat
+        );
+        explosionFlash.position.set(0, 0.18, 0);
+        explosionFlash.renderOrder = 7;
+        explosion3D.add(explosionFlash);
+
+        const rimMat = new THREE.MeshBasicMaterial({
+            color: 0xfff7d9,
+            transparent: true,
+            opacity: 0,
+            depthTest: true,
+            depthWrite: false,
+            blending: THREE.AdditiveBlending
+        });
+        const fractureRim3D = new THREE.Mesh(
+            new THREE.TorusGeometry(0.53, 0.032, 8, 42),
+            rimMat
+        );
+        fractureRim3D.rotation.x = Math.PI / 2;
+        fractureRim3D.position.y = 0.11;
+        fractureRim3D.renderOrder = 6;
+        explosion3D.add(fractureRim3D);
+
+        const stemMat = new THREE.MeshBasicMaterial({
+            color: 0xffaf34,
+            transparent: true,
+            opacity: 0,
+            depthTest: true,
+            depthWrite: false
+        });
+        const explosionStem = new THREE.Mesh(
+            new THREE.CylinderGeometry(0.10, 0.16, 0.74, 16, 1, false),
+            stemMat
+        );
+        explosionStem.position.set(0, 0.47, 0);
+        explosionStem.scale.set(1, 0.02, 1);
+        explosionStem.renderOrder = 5;
+        explosion3D.add(explosionStem);
+
+        const puffSpecs = [
+            [-0.29, 0.82,  0.00, 0.31, 0xffc861],
+            [ 0.00, 0.94,  0.02, 0.38, 0xfff1d7],
+            [ 0.30, 0.82, -0.01, 0.31, 0xffb14a],
+            [-0.14, 0.93,  0.12, 0.29, 0xffdf91],
+            [ 0.16, 0.96, -0.10, 0.30, 0xff9d2d],
+            [ 0.00, 0.72,  0.04, 0.27, 0xffe5bc]
+        ];
+        const explosionPuffs = puffSpecs.map(([x, y, z, size, color]) => {
+            const material = new THREE.MeshBasicMaterial({
+                color,
+                transparent: true,
+                opacity: 0,
+                depthTest: true,
+                depthWrite: false
+            });
+            const puff = new THREE.Mesh(new THREE.SphereGeometry(1, 16, 12), material);
+            puff.position.set(x, y, z);
+            puff.scale.setScalar(size * 0.15);
+            puff.userData.base = new THREE.Vector3(x, y, z);
+            puff.userData.size = size;
+            puff.renderOrder = 5;
+            explosion3D.add(puff);
+            return puff;
+        });
+
+        const debrisMat = new THREE.MeshBasicMaterial({
+            color: 0xffe36c,
+            transparent: true,
+            opacity: 0,
+            depthTest: true,
+            depthWrite: true
+        });
+        const debrisSpecs = [
+            [-0.34, 0.16,  0.08, -0.58, 0.88,  0.20, 0.11],
+            [-0.18, 0.21, -0.16, -0.24, 1.05, -0.38, 0.095],
+            [ 0.00, 0.24,  0.18,  0.02, 1.18,  0.42, 0.105],
+            [ 0.18, 0.21, -0.12,  0.31, 1.02, -0.34, 0.10],
+            [ 0.34, 0.15,  0.08,  0.60, 0.88,  0.18, 0.11],
+            [-0.08, 0.14,  0.28, -0.12, 0.90,  0.65, 0.085],
+            [ 0.10, 0.14,  0.27,  0.16, 0.92,  0.61, 0.085]
+        ];
+        const fractureDebris = debrisSpecs.map(([x, y, z, dx, dy, dz, size], index) => {
+            const piece = new THREE.Mesh(
+                new THREE.TetrahedronGeometry(size, 0),
+                debrisMat
+            );
+            piece.position.set(x, y, z);
+            piece.userData.base = new THREE.Vector3(x, y, z);
+            piece.userData.dir = new THREE.Vector3(dx, dy, dz);
+            piece.userData.spin = new THREE.Vector3(
+                2.4 + index * 0.31,
+                1.8 + index * 0.27,
+                2.0 + index * 0.23
+            );
+            piece.renderOrder = 4;
+            explosion3D.add(piece);
+            return piece;
+        });
+
+        const sparkPalette = [0xff4e1f, 0xff9a1f, 0xffda3b, 0x65d8ff, 0xff5ccf, 0xa8ff5a, 0xffffff, 0xff7f2a];
+        const explosionSparks = sparkPalette.map((color, index) => {
+            const material = new THREE.MeshBasicMaterial({
+                color,
+                transparent: true,
+                opacity: 0,
+                depthTest: true,
+                depthWrite: false,
+                blending: THREE.AdditiveBlending
+            });
+            const spark = new THREE.Mesh(new THREE.SphereGeometry(0.035, 10, 8), material);
+            const angle = (index / sparkPalette.length) * Math.PI * 2.0;
+            const lift = 0.76 + (index % 3) * 0.08;
+            spark.userData.base = new THREE.Vector3(0, 0.16, 0);
+            spark.userData.dir = new THREE.Vector3(Math.cos(angle) * 0.62, lift, Math.sin(angle) * 0.62);
+            spark.userData.delay = 0.15 + index * 0.018;
+            spark.userData.scale = 0.022 + (index % 4) * 0.008;
+            spark.renderOrder = 8;
+            explosion3D.add(spark);
+            return spark;
+        });
+
+        function updateExplosion3D(now) {
+            const isExplosionMode = Math.round(uniforms.uExpression.value) === 40;
+            const active = isExplosionMode && (expressionUntil || expressionReleasing || uniforms.uExprProgress.value > 0.01);
+
+            if (!active || !expressionDuration) {
+                explosion3D.visible = false;
+                explosionFlashMat.opacity = 0;
+                rimMat.opacity = 0;
+                stemMat.opacity = 0;
+                debrisMat.opacity = 0;
+                explosionPuffs.forEach(p => { p.material.opacity = 0; });
+                explosionSparks.forEach(s => { s.material.opacity = 0; });
+                return;
+            }
+
+            explosion3D.visible = true;
+            const t = THREE.MathUtils.clamp((now - expressionStart) / Math.max(1, expressionDuration), 0, 1);
+            const open = THREE.MathUtils.smoothstep(t, 0.04, 0.20);
+            const plume = THREE.MathUtils.smoothstep(t, 0.12, 0.34);
+            const fade = 1.0 - THREE.MathUtils.smoothstep(t, 0.72, 1.0);
+
+            fractureRim3D.scale.setScalar(0.74 + open * 0.38);
+            rimMat.opacity = open * fade * 0.96;
+
+            const flashPulse = Math.sin(Math.min(1, t / 0.23) * Math.PI);
+            explosionFlash.scale.setScalar(0.25 + flashPulse * 1.50);
+            explosionFlash.position.y = 0.15 + plume * 0.09;
+            explosionFlashMat.opacity = Math.max(0, flashPulse) * (1.0 - THREE.MathUtils.smoothstep(t, 0.24, 0.50));
+
+            explosionStem.scale.set(1.0 + plume * 0.18, Math.max(0.02, plume), 1.0 + plume * 0.18);
+            explosionStem.position.y = 0.20 + plume * 0.34;
+            stemMat.opacity = plume * fade * 0.92;
+
+            explosionPuffs.forEach((puff, i) => {
+                const delay = 0.16 + i * 0.012;
+                const puffT = THREE.MathUtils.smoothstep(t, delay, delay + 0.24);
+                const size = puff.userData.size * (0.30 + puffT * 0.88);
+                puff.scale.setScalar(size);
+                puff.position.copy(puff.userData.base);
+                puff.position.y += puffT * (0.18 + i * 0.018);
+                puff.position.x *= 0.72 + puffT * 1.02;
+                puff.material.opacity = puffT * fade * 0.92;
+            });
+
+            const eject = THREE.MathUtils.smoothstep(t, 0.05, 0.38);
+            const debrisFade = 1.0 - THREE.MathUtils.smoothstep(t, 0.54, 0.92);
+            debrisMat.opacity = eject * debrisFade;
+            fractureDebris.forEach((piece, i) => {
+                piece.position.copy(piece.userData.base);
+                piece.position.addScaledVector(piece.userData.dir, eject * 0.78);
+                piece.position.y -= Math.max(0, eject - 0.58) * Math.max(0, eject - 0.58) * 0.30;
+                piece.rotation.x = piece.userData.spin.x * eject;
+                piece.rotation.y = piece.userData.spin.y * eject;
+                piece.rotation.z = piece.userData.spin.z * eject;
+                const pulseScale = 0.98 + 0.13 * Math.sin((t * 9.0) + i);
+                piece.scale.setScalar(pulseScale);
+            });
+
+            explosionSparks.forEach((spark, i) => {
+                const delay = spark.userData.delay;
+                const sparkT = THREE.MathUtils.smoothstep(t, delay, delay + 0.18);
+                const sparkFade = 1.0 - THREE.MathUtils.smoothstep(t, delay + 0.18, delay + 0.62);
+                const life = sparkT * sparkFade;
+                spark.position.copy(spark.userData.base);
+                spark.position.addScaledVector(spark.userData.dir, sparkT * 0.88);
+                spark.position.y -= Math.max(0, sparkT - 0.64) * Math.max(0, sparkT - 0.64) * 0.12;
+                const scale = spark.userData.scale * (1.0 + sparkT * 4.5);
+                spark.scale.setScalar(scale);
+                spark.material.opacity = life * 0.95;
+            });
+        }
+
         const pointer = new THREE.Vector2(0, 0);
         const targetLook = new THREE.Vector2(0, 0);
         const smoothLook = new THREE.Vector2(0, 0);
@@ -635,9 +869,11 @@
         let expressionStart = 0;
         let expressionDuration = 0;
         let expressionUntil = 0;
-        let nextExpression = performance.now() + 2400 + Math.random() * 2600;
+        let nextExpression = performance.now() + 3800 + Math.random() * 2600;
         let expressionCooldown = 0;
         let expressionReleasing = false;
+        let pendingExpression = null;
+        let pendingExpressionAt = 0;
         let lastRandomExpressionMode = -1;
         let randomEmotionBag = [];
         let lastPointerX = 0;
@@ -767,10 +1003,7 @@
         }
 
         function nextRandomEmotion() {
-            if (Math.random() < 0.025) {
-                lastRandomExpressionMode = 40;
-                return { mode: 40, motion: 6, dur: 3900 };
-            }
+            // A explosão (modo 40) deixou de ser aleatória: agora é um easter egg de 10 cliques.
             if (!randomEmotionBag.length) refillEmotionBag();
             const pick = randomEmotionBag.shift();
             lastRandomExpressionMode = pick.mode;
@@ -799,28 +1032,45 @@
             }
         }
 
-        function setExpression(mode, duration = 900) {
+        function beginExpression(mode, duration = 900) {
             const now = performance.now();
             const strongEmotion = [9, 10, 11, 17, 19, 20, 22, 24, 25, 30, 31, 32, 33, 35, 37, 38, 39, 40].includes(mode);
             const minDuration = strongEmotion ? 3200 : 2500;
             const maxDuration = strongEmotion ? 5200 : 4400;
             const naturalDuration = THREE.MathUtils.clamp(duration, minDuration, maxDuration);
+
+            // Cada nova emoção começa de um rosto limpo.
+            closedEyesUntil = 0;
+            blinkStart = 0;
+            secondBlinkAt = 0;
+            blinkDoublePending = false;
+            uniforms.uBlinkLeft.value = 1;
+            uniforms.uBlinkRight.value = 1;
             uniforms.uExpression.value = mode;
             uniforms.uExprProgress.value = 0;
             uniforms.uMouthOpen.value = 0;
 
-            // A explosão rara ganha uma camada visual externa, sincronizada com a emoção.
+            shell.classList.remove('is-exploding');
             shell.classList.toggle('is-exploding', mode === 40);
-            if (mode === 40 && explosionEl) {
-                explosionEl.style.animation = 'none';
-                void explosionEl.offsetWidth;
-                explosionEl.style.animation = '';
-            }
             expressionStart = now;
             expressionDuration = naturalDuration;
             expressionUntil = now + naturalDuration;
-            expressionCooldown = expressionUntil + 820;
+            expressionCooldown = expressionUntil + 1200;
             expressionReleasing = false;
+            return true;
+        }
+
+        function setExpression(mode, duration = 900) {
+            const now = performance.now();
+            if (expressionUntil || expressionReleasing) {
+                // Só uma emoção fica pendente. Uma nova reação substitui a pendente, nunca a atual.
+                pendingExpression = { mode, duration };
+                pendingExpressionAt = 0;
+                return false;
+            }
+            pendingExpression = null;
+            pendingExpressionAt = 0;
+            return beginExpression(mode, duration);
         }
 
         function setHeadMotion(type = 0, duration = 900) {
@@ -868,7 +1118,7 @@
         }
 
         function maybeStartStage4Gesture(now) {
-            if (!inViewport || drag.active || specialFlipActive || expressionUntil || headGestureType || now < nextHeadGestureAt) return;
+            if (!inViewport || drag.active || specialFlipActive || expressionUntil || expressionReleasing || pendingExpression || stage5Sequence.length || headGestureType || now < nextHeadGestureAt) return;
 
             const pick = Math.floor(Math.random() * 5);
             if (pick === 0) {
@@ -920,6 +1170,7 @@
 
         function updateStage5Sequence(now) {
             if (!stage5Sequence.length || now < stage5NextStepAt) return;
+            if (expressionUntil || expressionReleasing || pendingExpression) return;
             const step = stage5Sequence[stage5SequenceIndex];
             applyStage5Step(step, now);
             stage5SequenceIndex += 1;
@@ -969,7 +1220,7 @@
         }
 
         function maybeRunPendingSectionReaction() {
-            if (!pendingSectionReaction || !inViewport || drag.active) return;
+            if (!pendingSectionReaction || !inViewport || drag.active || expressionUntil || expressionReleasing || pendingExpression) return;
             const id = pendingSectionReaction;
             pendingSectionReaction = '';
             triggerSectionReaction(id);
@@ -1324,17 +1575,37 @@
         shell.addEventListener('click', () => {
             const now = performance.now();
             markActivity();
-            clickBurst = clickBurst.filter(t => now - t < 1800);
+
+            // Easter egg: 10 cliques rápidos na Sphere fazem a cabeça "explodir".
+            // Janela um pouco maior para funcionar de forma natural, sem exigir cliques absurdamente rápidos.
+            clickBurst = clickBurst.filter(t => now - t < 3500);
             clickBurst.push(now);
-            if (clickBurst.length >= 5 && now > clickCooldownUntil) {
-                clickCooldownUntil = now + 9000;
+
+            if (clickBurst.length >= 10 && now > clickCooldownUntil) {
+                clickCooldownUntil = now + 12000;
                 clickBurst = [];
-                setExpression(Math.random() < 0.5 ? 11 : 19, 1450); // irritada / vermelha de raiva
-                setHeadMotion(2, 1150);  // nega com a cabeça
+
+                // Interrompe qualquer emoção anterior e começa a explosão com o rosto limpo,
+                // evitando o efeito aparecer atrás de uma expressão normal.
+                pendingExpression = null;
+                pendingExpressionAt = 0;
+                expressionUntil = 0;
+                expressionReleasing = false;
+                expressionCooldown = 0;
+                uniforms.uExprProgress.value = 0;
+                uniforms.uMouthOpen.value = 0;
+                shell.classList.remove('is-exploding');
+
+                beginExpression(40, 4200);
+                setHeadMotion(6, 1500);
                 return;
             }
-            if (now > expressionCooldown) {
-                setExpression(Math.random() < 0.5 ? 3 : 4, 850); setHeadMotion(3, 500); // piscadinha
+
+            // Clique comum continua com a reação leve. Durante a sequência de cliques,
+            // não fica empilhando piscadinhas ou outras emoções.
+            if (clickBurst.length === 1 && now > expressionCooldown) {
+                setExpression(Math.random() < 0.5 ? 3 : 4, 850);
+                setHeadMotion(3, 500);
             }
         });
 
@@ -1505,7 +1776,7 @@
 
             // Sem interação por um tempo -> sono/bocejo discreto.
             if (inViewport && !drag.active && !expressionUntil && !expressionReleasing && now - lastActivityAt > 11500 && now > idleReactionCooldownUntil) {
-                idleReactionCooldownUntil = now + 18000;
+                idleReactionCooldownUntil = now + 22000;
                 lastActivityAt = now;
                 setExpression(7, 1850);
                 setHeadMotion(5, 1650);
@@ -1514,14 +1785,14 @@
                 motionType = 0;
                 motionUntil = 0;
             }
-            if (!expressionUntil && !expressionReleasing && now >= nextExpression && !drag.active) {
+            if (!expressionUntil && !expressionReleasing && !pendingExpression && !stage5Sequence.length && now >= nextExpression && !drag.active) {
                 const pick = nextRandomEmotion();
                 setExpression(pick.mode, pick.dur + Math.random() * 350);
                 if (pick.motion) {
                     const fastMotion = [9, 10, 11, 19, 22, 30, 31, 35, 37, 39, 40].includes(pick.mode);
                     setHeadMotion(pick.motion, fastMotion ? 950 + Math.random() * 280 : 1400 + Math.random() * 480);
                 }
-                nextExpression = now + 1850 + Math.random() * 1700;
+                nextExpression = now + 3200 + Math.random() * 2400;
             }
         }
 
@@ -1543,8 +1814,8 @@
                 maintainAccessoryState();
             }
 
-            if (spherePointerInside && stableHoverSince && now - stableHoverSince > 4200 && now > stableHoverCooldownUntil && now > expressionCooldown && !drag.active) {
-                stableHoverCooldownUntil = now + 16000;
+            if (spherePointerInside && stableHoverSince && now - stableHoverSince > 5200 && now > stableHoverCooldownUntil && now > expressionCooldown && !drag.active && !expressionUntil && !expressionReleasing && !pendingExpression && !stage5Sequence.length) {
+                stableHoverCooldownUntil = now + 19000;
                 stableHoverSince = now;
                 const hoverMode = Math.random() < 0.5 ? 14 : 3;
                 setExpression(hoverMode, 2200);
@@ -1557,26 +1828,36 @@
 
             if (expressionUntil && expressionDuration > 0) {
                 const ep = THREE.MathUtils.clamp((now - expressionStart) / expressionDuration, 0, 1);
-                const enterT = THREE.MathUtils.clamp(ep / 0.18, 0, 1);
+                const enterT = THREE.MathUtils.clamp(ep / 0.12, 0, 1);
                 const easedEnter = enterT * enterT * (3 - 2 * enterT);
-                uniforms.uExprProgress.value += (easedEnter - uniforms.uExprProgress.value) * 0.14;
+                uniforms.uExprProgress.value += (easedEnter - uniforms.uExprProgress.value) * 0.18;
                 let mouthEnvelope = 1.0;
-                if (ep < 0.18) mouthEnvelope = ep / 0.18;
-                else if (ep > 0.90) mouthEnvelope = (1.0 - ep) / 0.10;
+                if (ep < 0.12) mouthEnvelope = ep / 0.12;
+                else if (ep > 0.88) mouthEnvelope = (1.0 - ep) / 0.12;
                 mouthEnvelope = THREE.MathUtils.clamp(mouthEnvelope, 0, 1);
                 mouthEnvelope = mouthEnvelope * mouthEnvelope * (3.0 - 2.0 * mouthEnvelope);
                 const mouthTarget = mouthTargetForMode(Math.round(uniforms.uExpression.value)) * mouthEnvelope;
-                uniforms.uMouthOpen.value += (mouthTarget - uniforms.uMouthOpen.value) * 0.16;
+                uniforms.uMouthOpen.value += (mouthTarget - uniforms.uMouthOpen.value) * 0.20;
             } else {
-                uniforms.uExprProgress.value += (0 - uniforms.uExprProgress.value) * (expressionReleasing ? 0.075 : 0.14);
+                uniforms.uExprProgress.value += (0 - uniforms.uExprProgress.value) * (expressionReleasing ? 0.065 : 0.12);
                 uniforms.uMouthOpen.value += (0 - uniforms.uMouthOpen.value) * 0.10;
                 if (expressionReleasing && uniforms.uExprProgress.value < 0.03 && uniforms.uMouthOpen.value < 0.025) {
                     uniforms.uExpression.value = 0;
                     uniforms.uExprProgress.value = 0;
+                    uniforms.uMouthOpen.value = 0;
                     expressionDuration = 0;
                     expressionReleasing = false;
                     shell.classList.remove('is-exploding');
+                    if (pendingExpression && !pendingExpressionAt) pendingExpressionAt = now + 220;
                 }
+            }
+
+            if (!expressionUntil && !expressionReleasing && pendingExpression && pendingExpressionAt && now >= pendingExpressionAt) {
+                const queued = pendingExpression;
+                pendingExpression = null;
+                pendingExpressionAt = 0;
+                beginExpression(queued.mode, queued.duration);
+                nextExpression = now + 3800 + Math.random() * 2400;
             }
 
             targetPointScale = projectsHover ? 1.12 : 1.0;
@@ -1741,6 +2022,7 @@
                 drag.tiltY *= 0.88;
             }
 
+            updateExplosion3D(now);
             renderer.render(scene, camera);
         }
 
