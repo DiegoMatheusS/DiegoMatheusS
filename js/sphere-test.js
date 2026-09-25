@@ -440,10 +440,10 @@
                 float smugLine = lineMask(p.y + 0.252 - p.x * 0.028, 0.010, 0.007) *
                     (1.0 - smoothstep(0.128, 0.150, abs(p.x))) * front * smug;
 
-                float devilSmileHalf = 0.178;
-                float devilSmileCurve = -0.214 - 0.084 * (1.0 - (p.x / devilSmileHalf) * (p.x / devilSmileHalf));
-                float devilSmileRange = 1.0 - smoothstep(devilSmileHalf, devilSmileHalf + 0.020, abs(p.x));
-                float devilSmileLine = lineMask(p.y - devilSmileCurve, 0.015, 0.010) * devilSmileRange * front * devil * exprEase;
+                float devilSmileHalf = 0.232;
+                float devilSmileCurve = -0.204 - 0.112 * (1.0 - (p.x / devilSmileHalf) * (p.x / devilSmileHalf));
+                float devilSmileRange = 1.0 - smoothstep(devilSmileHalf, devilSmileHalf + 0.024, abs(p.x));
+                float devilSmileLine = lineMask(p.y - devilSmileCurve, 0.020, 0.012) * devilSmileRange * front * devil * exprEase;
                 float impressedOpen = fillEllipse(p, vec2(0.0, -0.236), vec2(0.040 + 0.064 * openAmount, 0.070 + 0.090 * openAmount), 0.040) * front * impressed;
                 float starJoyHalf = 0.175;
                 float starJoyCurve = -0.222 - 0.086 * (1.0 - (p.x / starJoyHalf) * (p.x / starJoyHalf));
@@ -653,17 +653,10 @@
         devilHorns.scale.setScalar(0.001);
         sphereGroup.add(devilHorns);
 
-        const devilHornBaseMat = new THREE.MeshBasicMaterial({
-            color: 0x8d163d,
+        const devilHornMat = new THREE.MeshBasicMaterial({
+            color: 0xb01d60,
             transparent: true,
-            opacity: 0.98,
-            depthTest: true,
-            depthWrite: true
-        });
-        const devilHornTipMat = new THREE.MeshBasicMaterial({
-            color: 0xe13555,
-            transparent: true,
-            opacity: 0.98,
+            opacity: 0.99,
             depthTest: true,
             depthWrite: true
         });
@@ -671,25 +664,19 @@
         function createDevilHorn(side) {
             const horn = new THREE.Group();
 
-            const base = new THREE.Mesh(
-                new THREE.ConeGeometry(0.18, 0.54, 18, 1, false),
-                devilHornBaseMat
+            // Cone triangular simples, grande, saindo da cabeça como no emoji.
+            const spike = new THREE.Mesh(
+                new THREE.ConeGeometry(0.23, 0.74, 3, 1, false),
+                devilHornMat
             );
-            base.position.set(0, 0.20, 0);
-            base.rotation.z = side * -0.42;
-            horn.add(base);
+            spike.position.set(0, 0.14, 0);
+            spike.rotation.z = side * -0.74;
+            spike.rotation.x = 0.08;
+            horn.add(spike);
 
-            const tip = new THREE.Mesh(
-                new THREE.ConeGeometry(0.115, 0.39, 16, 1, false),
-                devilHornTipMat
-            );
-            tip.position.set(side * 0.13, 0.56, 0);
-            tip.rotation.z = side * -0.74;
-            horn.add(tip);
-
-            horn.position.set(side * 0.67, RADIUS * 0.74, 0.12);
-            horn.rotation.y = side * -0.10;
-            horn.rotation.x = -0.08;
+            horn.position.set(side * 0.70, RADIUS * 0.68, 0.11);
+            horn.rotation.y = side * -0.12;
+            horn.rotation.x = -0.04;
             return horn;
         }
 
@@ -709,10 +696,10 @@
 
             devilHorns.visible = true;
             const p = THREE.MathUtils.clamp(uniforms.uExprProgress.value, 0, 1);
-            const grow = THREE.MathUtils.smoothstep(p, 0.08, 0.44);
-            const pulse = 1.0 + Math.sin(now * 0.0042) * 0.018;
-            devilHorns.scale.setScalar(Math.max(0.001, grow * pulse));
-            devilHorns.position.y = Math.sin(now * 0.0028) * 0.012;
+            const grow = THREE.MathUtils.smoothstep(p, 0.08, 0.40);
+            const pulse = 1.0 + Math.sin(now * 0.0042) * 0.014;
+            devilHorns.scale.setScalar(Math.max(0.001, grow * 1.06 * pulse));
+            devilHorns.position.y = Math.sin(now * 0.0028) * 0.008;
         }
 
         // Explosão 3D: fica presa ao mesmo espaço da Sphere.
