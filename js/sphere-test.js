@@ -230,7 +230,8 @@
                 float impressed = step(36.5, uExpression) * (1.0 - step(37.5, uExpression));
                 float starJoy = step(37.5, uExpression) * (1.0 - step(38.5, uExpression));
                 float shockBlue = step(38.5, uExpression) * (1.0 - step(39.5, uExpression));
-                float explodeHead = step(39.5, uExpression);
+                float explodeHead = step(39.5, uExpression) * (1.0 - step(40.5, uExpression));
+                float devil = step(40.5, uExpression) * (1.0 - step(41.5, uExpression));
 
                 // A quebra acontece na própria casca da esfera, em coordenadas 3D.
                 // Conforme a emoção entra, o topo abre com borda irregular e revela o núcleo preto.
@@ -260,6 +261,12 @@
                 color = mix(color, vec3(0.50, 0.78, 1.0) * vDepthLight, screamTop * 0.30);
                 float shockBlueTop = smoothstep(0.08, 0.86, p.y) * shockBlue * exprEase * front;
                 color = mix(color, vec3(0.40, 0.76, 1.0) * vDepthLight, shockBlueTop * 0.88);
+
+                // Capetinha: todas as luzes migram gradualmente do amarelo para roxo.
+                float devilPurple = devil * exprEase;
+                vec3 devilBody = mix(vec3(0.54, 0.07, 0.76), vec3(0.78, 0.12, 0.94), core * 0.42);
+                color = mix(color, devilBody * vDepthLight, devilPurple * 0.96);
+
                 float explodeWarmTop = smoothstep(0.25, 0.88, p.y) * explodeHead * exprEase * front;
                 color = mix(color, vec3(1.0, 0.80, 0.24) * vDepthLight, explodeWarmTop * 0.16);
                 // LEDs imediatamente abaixo da rachadura ficam quentes, como borda recém-rompida.
@@ -270,6 +277,7 @@
                 float baseEyeY = 0.205;
                 baseEyeY *= mix(1.0, 1.26, wide * exprEase);
                 baseEyeY *= mix(1.0, 0.58, (squint + angry * (0.40 + 0.26 * angerMorph) + laugh * 0.45 + sideEye * 0.35 + grin * 0.28 + rage * 0.62 + confused * 0.12 + cool * 0.18 + laughTears * 0.22 + nauseous * 0.16) * exprEase);
+                baseEyeY *= mix(1.0, 0.60, devil * exprEase);
                 baseEyeY *= mix(1.0, 0.72, sleepy * exprEase);
                 baseEyeY *= mix(1.0, 1.18, (worried + scream * 0.35 + starEyes * 0.12 + pleading * 0.32) * exprEase);
                 baseEyeY *= mix(1.0, 1.06, (heartEyes + cry * 0.10 + nerd * 0.06 + starJoy * 0.10) * exprEase);
@@ -302,7 +310,8 @@
 
                 vec2 pupilOffset = vec2(look.x * 0.092, look.y * 0.118);
                 pupilOffset.y += sad * -0.012 + cry * -0.010 + worried * -0.020 + nauseous * -0.006
-                    + thinking * 0.075 + eyeRoll * 0.105 + scream * 0.018 + pleading * -0.024 + smug * -0.008 + impressed * 0.010;
+                    + thinking * 0.075 + eyeRoll * 0.105 + scream * 0.018 + pleading * -0.024 + smug * -0.008 + impressed * 0.010
+                    + devil * 0.014;
                 pupilOffset.x += sideEye * 0.055 + confused * 0.024 - rage * 0.015 + worried * 0.004
                     + thinking * 0.052 - eyeRoll * 0.018 + smug * 0.050;
                 vec2 crossOffsetL = vec2(0.070, -0.030) * cross;
@@ -315,6 +324,7 @@
                 pupilR *= mix(1.0, 0.84, cool);
                 pupilR *= mix(1.0, 1.12, worried);
                 pupilR *= mix(1.0, 0.82, (impressed + shockBlue + explodeHead * 0.4));
+                pupilR *= mix(1.0, 0.76, devil * exprEase);
                 float lp = fillEllipse(p, leftC + pupilOffset + crossOffsetL + kissOffset, pupilR, 0.045) * leftEye * (1.0 - winkL) * (1.0 - specialEyeMask);
                 float rp = fillEllipse(p, rightC + pupilOffset + crossOffsetR + kissOffset, pupilR, 0.045) * rightEye * (1.0 - winkR) * (1.0 - specialEyeMask);
                 float pupils = max(lp, rp);
@@ -329,15 +339,15 @@
                 float browLookTilt = look.x * 0.030;
                 float browBaseLift = wide * 0.050 + happy * 0.010 + sad * 0.014 - sleepy * 0.018 - angry * 0.006 - rage * 0.010 + laugh * 0.004
                     + cry * 0.008 + blush * 0.006 + worried * 0.014 + scream * 0.052 + angel * 0.018 + starEyes * 0.022 + pleading * 0.040 + dizzy * 0.010
-                    + impressed * 0.090 + starJoy * 0.062 + shockBlue * 0.104 + explodeHead * 0.082;
+                    + impressed * 0.090 + starJoy * 0.062 + shockBlue * 0.104 + explodeHead * 0.082 - devil * 0.016;
                 float browLiftLeft = browBaseLift + winkL * 0.022 + sideEye * 0.016 + browFollowLeftY + browLookLift - browLookDrop + cry * 0.020 + blush * 0.008;
                 float browLiftRight = browBaseLift + winkR * 0.022 - sideEye * 0.004 + browFollowRightY + browLookLift - browLookDrop + cry * 0.004 + blush * 0.008;
                 float browSlopeLeft = -angry * (0.16 + 0.10 * angerMorph) - rage * 0.30 + sad * 0.09 + cross * 0.05 + sideEye * 0.06 - happy * 0.02 + sleepy * 0.03 + confused * 0.14 + cry * 0.08
                     + thinking * 0.16 + eyeRoll * 0.08 + nerd * 0.03 + pleading * 0.16 - smug * 0.04 + impressed * 0.010 + starJoy * 0.010 + shockBlue * 0.006 + explodeHead * 0.005
-                    + browLookTilt * 0.35;
+                    - devil * 0.24 + browLookTilt * 0.35;
                 float browSlopeRight = angry * (0.16 + 0.10 * angerMorph) + rage * 0.30 - sad * 0.09 - cross * 0.05 - sideEye * 0.02 + happy * 0.02 - sleepy * 0.03 - confused * 0.05 - cry * 0.02
                     - thinking * 0.05 - eyeRoll * 0.08 - nerd * 0.03 - pleading * 0.16 - smug * 0.10 - impressed * 0.010 - starJoy * 0.010 - shockBlue * 0.006 - explodeHead * 0.005
-                    + browLookTilt * 0.35;
+                    + devil * 0.24 + browLookTilt * 0.35;
                 float browThickness = 0.018 + angry * 0.003 + rage * 0.006 + sleepy * 0.002 + wide * 0.002 + cool * 0.001 + impressed * 0.002 + shockBlue * 0.003;
                 float browSoftness = 0.011 + happy * 0.001;
                 float browHalfWidth = 0.165 + happy * 0.010 + sleepy * 0.006 - tinyO * 0.012 + furious * 0.010 + impressed * 0.022 + starJoy * 0.018 + shockBlue * 0.020;
@@ -356,7 +366,7 @@
                 float brows = max(browL, browR) * (1.0 - specialEyeMask);
 
                 // Uma única boca por estado. Estados abertos nunca desenham o sorriso junto.
-                float expressionSum = clamp((wide + squint + winkL + winkR + meh + happy + sleepy + tinyO + laugh + sad + angry + cross + sideEye + kiss + grin + confused + cry + blush + furious + heartEyes + cool + laughTears + tongueFun + nauseous + worried + angel + nerd + thinking + eyeRoll + starEyes + scream + freezing + money + pleading + dizzy + smug + impressed + starJoy + shockBlue + explodeHead), 0.0, 1.0);
+                float expressionSum = clamp((wide + squint + winkL + winkR + meh + happy + sleepy + tinyO + laugh + sad + angry + cross + sideEye + kiss + grin + confused + cry + blush + furious + heartEyes + cool + laughTears + tongueFun + nauseous + worried + angel + nerd + thinking + eyeRoll + starEyes + scream + freezing + money + pleading + dizzy + smug + impressed + starJoy + shockBlue + explodeHead + devil), 0.0, 1.0);
                 float hasEmotion = step(0.5, expressionSum);
                 // Há uma pequena troca limpa: o neutro sai antes da boca/efeito emocional entrar.
                 float neutral = 1.0 - hasEmotion * smoothstep(0.10, 0.24, exprEase);
@@ -429,6 +439,11 @@
                 float dizzyOpen = fillEllipse(p, vec2(0.0, -0.257), vec2(0.018 + 0.014 * openAmount, 0.040 + 0.010 * openAmount), 0.035) * front * dizzy;
                 float smugLine = lineMask(p.y + 0.252 - p.x * 0.028, 0.010, 0.007) *
                     (1.0 - smoothstep(0.128, 0.150, abs(p.x))) * front * smug;
+
+                float devilSmileHalf = 0.178;
+                float devilSmileCurve = -0.214 - 0.084 * (1.0 - (p.x / devilSmileHalf) * (p.x / devilSmileHalf));
+                float devilSmileRange = 1.0 - smoothstep(devilSmileHalf, devilSmileHalf + 0.020, abs(p.x));
+                float devilSmileLine = lineMask(p.y - devilSmileCurve, 0.015, 0.010) * devilSmileRange * front * devil * exprEase;
                 float impressedOpen = fillEllipse(p, vec2(0.0, -0.236), vec2(0.040 + 0.064 * openAmount, 0.070 + 0.090 * openAmount), 0.040) * front * impressed;
                 float starJoyHalf = 0.175;
                 float starJoyCurve = -0.222 - 0.086 * (1.0 - (p.x / starJoyHalf) * (p.x / starJoyHalf));
@@ -441,13 +456,15 @@
                     max(max(max(kissOpen, happyOpen), furiousOpen), max(max(tongueOuter, worriedOpen), max(max(screamOpen, moneyOpen), max(dizzyOpen, max(impressedOpen, max(shockBlueOpen, explodeOpen)))))));
                 float emotionLineMouth = max(max(max(happyLine, sleepyLine), max(sideLine, grinLine)),
                     max(max(max(max(sadLine, angryLine), max(mehLine, confusedLine)), max(max(cryLine, blushLine), max(furiousLine, heartLine))),
-                    max(max(max(coolLine, laughTearsLine), max(nauseousLine, angelLine)), max(max(nerdLine, thinkingLine), max(max(eyeRollLine, starLine), max(max(freezeLine, pleadingLine), max(smugLine, starJoyLine)))))));
+                    max(max(max(coolLine, laughTearsLine), max(nauseousLine, angelLine)), max(max(nerdLine, thinkingLine), max(max(eyeRollLine, starLine), max(max(freezeLine, pleadingLine), max(max(smugLine, starJoyLine), devilSmileLine)))))));
                 float customMouth = max(openMouth, emotionLineMouth * emotionFace);
-                float mouthOverrideMode = clamp(meh + happy + sleepy + tinyO + laugh + sad + angry + cross + sideEye + kiss + grin + confused + cry + blush + furious + cool + laughTears + tongueFun + nauseous + worried + angel + nerd + thinking + eyeRoll + starEyes + scream + freezing + money + pleading + dizzy + smug + impressed + starJoy + shockBlue + explodeHead, 0.0, 1.0);
+                float mouthOverrideMode = clamp(meh + happy + sleepy + tinyO + laugh + sad + angry + cross + sideEye + kiss + grin + confused + cry + blush + furious + cool + laughTears + tongueFun + nauseous + worried + angel + nerd + thinking + eyeRoll + starEyes + scream + freezing + money + pleading + dizzy + smug + impressed + starJoy + shockBlue + explodeHead + devil, 0.0, 1.0);
                 float mouth = max(neutralSmile * (1.0 - mouthOverrideMode), customMouth);
 
                 float cheekL = fillEllipse(p, vec2(-0.18, -0.02), vec2(0.085, 0.055), 0.035) * front * blush;
                 float cheekR = fillEllipse(p, vec2(0.18, -0.02), vec2(0.085, 0.055), 0.035) * front * blush;
+                float devilCheekL = fillEllipse(p, vec2(-0.205, -0.015), vec2(0.074, 0.042), 0.040) * front * devil * exprEase;
+                float devilCheekR = fillEllipse(p, vec2(0.205, -0.015), vec2(0.074, 0.042), 0.040) * front * devil * exprEase;
                 float cryLeftCorner = fillEllipse(p, leftC + vec2(-0.142, -0.112), vec2(0.031, 0.074), 0.030) * front * cry * exprEase;
                 float cryRightCorner = fillEllipse(p, rightC + vec2(0.142, -0.112), vec2(0.031, 0.074), 0.030) * front * cry * exprEase;
                 float tears = max(cryLeftCorner, cryRightCorner);
@@ -521,6 +538,7 @@
                 vec3 cloudColor = vec3(0.78, 0.91, 1.0);
                 vec3 burstColor = vec3(1.0, 0.46, 0.12);
                 color = mix(color, cheekColor, max(cheekL, cheekR) * 0.55);
+                color = mix(color, vec3(1.0, 0.10, 0.46), max(devilCheekL, devilCheekR) * 0.38);
                 color = mix(color, eyeWhite, eyes);
                 color = mix(color, eyeWhite, max(max(starEyeBaseL, starEyeBaseR), max(max(shockEyeL, shockEyeR), max(explodeEyeL, explodeEyeR))));
                 color = mix(color, vec3(1.42, 1.42, 1.40), max(explodeEyeL, explodeEyeR));
@@ -538,6 +556,7 @@
                 color = mix(color, mouthBlack, explodeCap * 0.90);
                 color = mix(color, burstColor, explodeBurst * 0.72);
                 color = mix(color, ink, max(max(max(pupils, brows), winkLines), max(dizzyL, dizzyR)));
+                color = mix(color, vec3(0.92, 0.02, 0.10), pupils * devil * exprEase * 0.78);
                 color = mix(color, mouthBlack, mouth);
                 color = mix(color, tongueColor, tongueMask);
                 color = mix(color, eyeWhite, freezeTeeth);
@@ -627,6 +646,74 @@
             new THREE.MeshBasicMaterial({ transparent: true, opacity: 0, depthWrite: false })
         );
         sphereGroup.add(hitSphere);
+
+        // Capetinha 3D: chifres fazem parte do mesmo espaço da Sphere e acompanham sua rotação.
+        const devilHorns = new THREE.Group();
+        devilHorns.visible = false;
+        devilHorns.scale.setScalar(0.001);
+        sphereGroup.add(devilHorns);
+
+        const devilHornBaseMat = new THREE.MeshBasicMaterial({
+            color: 0x8d163d,
+            transparent: true,
+            opacity: 0.98,
+            depthTest: true,
+            depthWrite: true
+        });
+        const devilHornTipMat = new THREE.MeshBasicMaterial({
+            color: 0xe13555,
+            transparent: true,
+            opacity: 0.98,
+            depthTest: true,
+            depthWrite: true
+        });
+
+        function createDevilHorn(side) {
+            const horn = new THREE.Group();
+
+            const base = new THREE.Mesh(
+                new THREE.ConeGeometry(0.18, 0.54, 18, 1, false),
+                devilHornBaseMat
+            );
+            base.position.set(0, 0.20, 0);
+            base.rotation.z = side * -0.42;
+            horn.add(base);
+
+            const tip = new THREE.Mesh(
+                new THREE.ConeGeometry(0.115, 0.39, 16, 1, false),
+                devilHornTipMat
+            );
+            tip.position.set(side * 0.13, 0.56, 0);
+            tip.rotation.z = side * -0.74;
+            horn.add(tip);
+
+            horn.position.set(side * 0.67, RADIUS * 0.74, 0.12);
+            horn.rotation.y = side * -0.10;
+            horn.rotation.x = -0.08;
+            return horn;
+        }
+
+        const devilHornLeft = createDevilHorn(-1);
+        const devilHornRight = createDevilHorn(1);
+        devilHorns.add(devilHornLeft, devilHornRight);
+
+        function updateDevilHorns(now) {
+            const isDevilMode = Math.round(uniforms.uExpression.value) === 41;
+            const active = isDevilMode && (expressionUntil || expressionReleasing || uniforms.uExprProgress.value > 0.02);
+
+            if (!active) {
+                devilHorns.visible = false;
+                devilHorns.scale.setScalar(0.001);
+                return;
+            }
+
+            devilHorns.visible = true;
+            const p = THREE.MathUtils.clamp(uniforms.uExprProgress.value, 0, 1);
+            const grow = THREE.MathUtils.smoothstep(p, 0.08, 0.44);
+            const pulse = 1.0 + Math.sin(now * 0.0042) * 0.018;
+            devilHorns.scale.setScalar(Math.max(0.001, grow * pulse));
+            devilHorns.position.y = Math.sin(now * 0.0028) * 0.012;
+        }
 
         // Explosão 3D: fica presa ao mesmo espaço da Sphere.
         // Assim acompanha a rotação da cabeça, respeita profundidade e nasce do interior aberto.
@@ -894,6 +981,7 @@
         let idleReactionCooldownUntil = 0;
         let clickBurst = [];
         let clickCooldownUntil = 0;
+        let clickResolveTimer = 0;
         let scrollLastY = window.scrollY;
         let scrollLastTime = performance.now();
         let scrollLastDirection = 0;
@@ -1061,7 +1149,7 @@
 
         function beginExpression(mode, duration = 900) {
             const now = performance.now();
-            const strongEmotion = [9, 10, 11, 17, 19, 20, 22, 24, 25, 30, 31, 32, 33, 35, 37, 38, 39, 40].includes(mode);
+            const strongEmotion = [9, 10, 11, 17, 19, 20, 22, 24, 25, 30, 31, 32, 33, 35, 37, 38, 39, 40, 41].includes(mode);
             const minDuration = strongEmotion ? 3200 : 2500;
             const maxDuration = strongEmotion ? 5200 : 4400;
             const naturalDuration = THREE.MathUtils.clamp(duration, minDuration, maxDuration);
@@ -1599,37 +1687,57 @@
             try { shell.setPointerCapture(event.pointerId); } catch (_) {}
         });
 
+        function clearCurrentEmotionForClickEgg() {
+            pendingExpression = null;
+            pendingExpressionAt = 0;
+            expressionUntil = 0;
+            expressionReleasing = false;
+            expressionCooldown = 0;
+            uniforms.uExprProgress.value = 0;
+            uniforms.uMouthOpen.value = 0;
+            uniforms.uExpression.value = 0;
+            shell.classList.remove('is-exploding');
+        }
+
+        function resolveClickEasterEgg() {
+            clickResolveTimer = 0;
+            const now = performance.now();
+            clickBurst = clickBurst.filter(t => now - t < 4200);
+            const totalClicks = clickBurst.length;
+            clickBurst = [];
+
+            if (now <= clickCooldownUntil) return;
+
+            if (totalClicks >= 13) {
+                clickCooldownUntil = now + 12000;
+                clearCurrentEmotionForClickEgg();
+                beginExpression(41, 4300);
+                setHeadMotion(7, 1800);
+                return;
+            }
+
+            if (totalClicks >= 8) {
+                clickCooldownUntil = now + 12000;
+                clearCurrentEmotionForClickEgg();
+                beginExpression(40, 4200);
+                setHeadMotion(6, 1500);
+            }
+        }
+
         shell.addEventListener('click', () => {
             const now = performance.now();
             markActivity();
 
-            // Easter egg: 10 cliques rápidos na Sphere fazem a cabeça "explodir".
-            // Janela um pouco maior para funcionar de forma natural, sem exigir cliques absurdamente rápidos.
-            clickBurst = clickBurst.filter(t => now - t < 3500);
+            // Easter eggs por sequência: esperamos o usuário parar de clicar antes de decidir.
+            // 8–12 cliques = explosão; 13+ cliques = capetinha.
+            clickBurst = clickBurst.filter(t => now - t < 4200);
             clickBurst.push(now);
 
-            if (clickBurst.length >= 10 && now > clickCooldownUntil) {
-                clickCooldownUntil = now + 12000;
-                clickBurst = [];
+            if (clickResolveTimer) clearTimeout(clickResolveTimer);
+            clickResolveTimer = window.setTimeout(resolveClickEasterEgg, 700);
 
-                // Interrompe qualquer emoção anterior e começa a explosão com o rosto limpo,
-                // evitando o efeito aparecer atrás de uma expressão normal.
-                pendingExpression = null;
-                pendingExpressionAt = 0;
-                expressionUntil = 0;
-                expressionReleasing = false;
-                expressionCooldown = 0;
-                uniforms.uExprProgress.value = 0;
-                uniforms.uMouthOpen.value = 0;
-                shell.classList.remove('is-exploding');
-
-                beginExpression(40, 4200);
-                setHeadMotion(6, 1500);
-                return;
-            }
-
-            // Clique comum continua com a reação leve. Durante a sequência de cliques,
-            // não fica empilhando piscadinhas ou outras emoções.
+            // Um clique isolado ainda pode dar uma reação leve, mas os cliques seguintes
+            // não empilham outras emoções enquanto a sequência está sendo contada.
             if (clickBurst.length === 1 && now > expressionCooldown) {
                 setExpression(Math.random() < 0.5 ? 3 : 4, 850);
                 setHeadMotion(3, 500);
@@ -2019,6 +2127,7 @@
             }
 
             updateExplosion3D(now);
+            updateDevilHorns(now);
             updateAngelHalo(now);
             renderer.render(scene, camera);
         }
