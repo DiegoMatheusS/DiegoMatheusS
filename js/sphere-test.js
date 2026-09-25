@@ -408,9 +408,9 @@
                     (1.0 - smoothstep(0.105, 0.125, abs(p.x))) * front * cry;
                 float blushLine = lineMask(p.y - (-0.250 - 0.043 * (1.0 - (p.x / 0.120) * (p.x / 0.120))), 0.010, 0.007) *
                     (1.0 - smoothstep(0.120, 0.142, abs(p.x))) * front * blush;
-                float furiousOpen = fillEllipse(p, vec2(0.0, -0.267), vec2(0.030 + 0.030 * openAmount, 0.030 + 0.030 * openAmount), 0.038) * front * rage;
+                float furiousOpen = 0.0;
                 float furiousLine = lineMask(p.y + 0.216 + 0.074 * (1.0 - (p.x / 0.120) * (p.x / 0.120)), 0.011, 0.008) *
-                    (1.0 - smoothstep(0.118, 0.142, abs(p.x))) * front * rage * (1.0 - openAmount);
+                    (1.0 - smoothstep(0.118, 0.142, abs(p.x))) * front * rage * exprEase;
                 float heartLine = 0.0;
                 float coolLine = lineMask(p.y - (-0.247 - 0.040 * (1.0 - (p.x / 0.138) * (p.x / 0.138))), 0.011, 0.008) *
                     (1.0 - smoothstep(0.138, 0.160, abs(p.x))) * front * cool * exprEase;
@@ -1118,7 +1118,7 @@
                 case 9: return 0.92;
                 case 12: return 0.48;
                 case 14: return 0.14;
-                case 19: return 0.44;
+                case 19: return 0.0;
                 case 22: return 0.90;
                 case 23: return 0.62;
                 case 25: return 0.16;
