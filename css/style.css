@@ -2479,3 +2479,207 @@ footer a {
     text-transform: uppercase;
     opacity: .82;
 }
+
+
+/* V49 — explosão rara refinada */
+.sphere-explosion {
+    position: absolute;
+    left: 50%;
+    top: 9%;
+    width: 64%;
+    aspect-ratio: 1.35 / 1;
+    transform: translate(-50%, -38%) scale(.36);
+    transform-origin: 50% 78%;
+    opacity: 0;
+    pointer-events: none;
+    z-index: 7;
+    filter: drop-shadow(0 14px 24px rgba(0,0,0,.28));
+}
+.sphere-test-shell.is-exploding .sphere-explosion {
+    animation: mushroomRise 3.9s cubic-bezier(.18,.78,.18,1) both;
+}
+.sphere-test-shell.is-exploding .sphere-scarf,
+.sphere-test-shell.is-exploding .sphere-accessory {
+    opacity: 0 !important;
+}
+
+.sphere-explosion .boom-flash {
+    position: absolute;
+    left: 50%;
+    top: 70%;
+    width: 24%;
+    aspect-ratio: 1;
+    transform: translate(-50%, -50%) scale(.3);
+    border-radius: 50%;
+    background:
+        radial-gradient(circle, #fffbe5 0 18%, #ffe86f 19% 37%, #ff9b23 38% 58%, rgba(255,70,20,.25) 59% 76%, transparent 77%);
+    box-shadow: 0 0 18px rgba(255,220,90,.95), 0 0 44px rgba(255,104,30,.72);
+    animation: boomFlash 3.9s ease-out both;
+}
+.sphere-explosion .boom-ring {
+    position: absolute;
+    left: 50%;
+    top: 69%;
+    width: 26%;
+    aspect-ratio: 1;
+    transform: translate(-50%, -50%) scale(.25);
+    border: 7px solid rgba(255,126,31,.88);
+    border-radius: 50%;
+    box-shadow: 0 0 20px rgba(255,184,55,.55);
+    animation: boomRing 3.9s ease-out both;
+}
+
+.sphere-explosion .boom-stem {
+    position: absolute;
+    left: 50%;
+    top: 39%;
+    width: 16%;
+    height: 43%;
+    transform: translateX(-50%) scaleY(.18);
+    transform-origin: 50% 100%;
+    border-radius: 45% 45% 28% 28%;
+    background:
+        linear-gradient(90deg,
+            rgba(86,143,190,.82) 0%,
+            #dff4ff 26%,
+            #ffffff 49%,
+            #aed8f2 72%,
+            rgba(73,125,176,.80) 100%);
+    box-shadow:
+        inset 0 0 15px rgba(255,255,255,.75),
+        0 4px 14px rgba(52,103,151,.30);
+    animation: boomStem 3.9s cubic-bezier(.18,.8,.2,1) both;
+}
+.sphere-explosion .boom-stem::after {
+    content: "";
+    position: absolute;
+    left: 50%;
+    bottom: 7%;
+    width: 145%;
+    height: 23%;
+    transform: translateX(-50%);
+    border-radius: 50%;
+    background: radial-gradient(ellipse, rgba(255,166,54,.76), rgba(255,93,21,.22) 55%, transparent 72%);
+}
+
+.sphere-explosion .boom-cap {
+    position: absolute;
+    border-radius: 50%;
+    background:
+        radial-gradient(circle at 38% 28%, #ffffff 0 18%, #dff3ff 31%, #b8daf1 58%, #79acd0 78%, #527ea8 100%);
+    box-shadow:
+        inset -10px -12px 18px rgba(43,92,137,.20),
+        inset 8px 8px 16px rgba(255,255,255,.82),
+        0 8px 18px rgba(45,91,135,.20);
+    opacity: 0;
+}
+.sphere-explosion .boom-cap-a {
+    left: 7%; top: 19%; width: 39%; aspect-ratio: 1.2;
+    animation: boomPuffA 3.9s cubic-bezier(.16,.82,.2,1) both;
+}
+.sphere-explosion .boom-cap-b {
+    left: 31%; top: 6%; width: 40%; aspect-ratio: 1.05;
+    animation: boomPuffB 3.9s cubic-bezier(.16,.82,.2,1) both;
+}
+.sphere-explosion .boom-cap-c {
+    right: 7%; top: 18%; width: 38%; aspect-ratio: 1.15;
+    animation: boomPuffC 3.9s cubic-bezier(.16,.82,.2,1) both;
+}
+.sphere-explosion .boom-cap-d {
+    left: 24%; top: 22%; width: 52%; height: 29%;
+    animation: boomPuffD 3.9s cubic-bezier(.16,.82,.2,1) both;
+}
+
+.sphere-explosion .boom-spark {
+    position: absolute;
+    width: 8%;
+    aspect-ratio: 1;
+    opacity: 0;
+    clip-path: polygon(50% 0, 61% 37%, 100% 50%, 61% 63%, 50% 100%, 39% 63%, 0 50%, 39% 37%);
+    background: linear-gradient(135deg, #fff36b, #ff9a21 56%, #ff4824);
+    filter: drop-shadow(0 0 7px rgba(255,130,25,.75));
+}
+.boom-spark-a { left: 7%; top: 39%; animation: boomSparkA 3.9s ease-out both; }
+.boom-spark-b { right: 6%; top: 33%; animation: boomSparkB 3.9s ease-out both; }
+.boom-spark-c { left: 20%; top: 3%; animation: boomSparkC 3.9s ease-out both; }
+.boom-spark-d { right: 18%; top: 2%; animation: boomSparkD 3.9s ease-out both; }
+
+@keyframes mushroomRise {
+    0%   { opacity:0; transform:translate(-50%, -20%) scale(.28); }
+    8%   { opacity:1; transform:translate(-50%, -28%) scale(.52); }
+    24%  { opacity:1; transform:translate(-50%, -40%) scale(1.04); }
+    52%  { opacity:1; transform:translate(-50%, -46%) scale(.98); }
+    82%  { opacity:.98; transform:translate(-50%, -49%) scale(1.01); }
+    100% { opacity:0; transform:translate(-50%, -55%) scale(.93); }
+}
+@keyframes boomFlash {
+    0% { opacity:0; transform:translate(-50%,-50%) scale(.15); }
+    8% { opacity:1; transform:translate(-50%,-50%) scale(1.5); }
+    22% { opacity:.75; transform:translate(-50%,-50%) scale(.92); }
+    42%,100% { opacity:0; transform:translate(-50%,-50%) scale(.65); }
+}
+@keyframes boomRing {
+    0%,5% { opacity:0; transform:translate(-50%,-50%) scale(.15); }
+    12% { opacity:.9; }
+    35% { opacity:.15; transform:translate(-50%,-50%) scale(2.8); }
+    100% { opacity:0; transform:translate(-50%,-50%) scale(3.4); }
+}
+@keyframes boomStem {
+    0%,7% { opacity:0; transform:translateX(-50%) scaleY(.12); }
+    22% { opacity:1; transform:translateX(-50%) scaleY(1.08); }
+    39% { transform:translateX(-50%) scaleY(.96); }
+    78% { opacity:1; transform:translateX(-50%) scaleY(1); }
+    100% { opacity:0; transform:translateX(-50%) scaleY(.94); }
+}
+@keyframes boomPuffA {
+    0%,12% { opacity:0; transform:translate(42%,55%) scale(.28); }
+    28% { opacity:1; transform:translate(0,0) scale(1.08); }
+    48% { transform:translate(-5%,-5%) scale(.98); }
+    84% { opacity:1; }
+    100% { opacity:0; transform:translate(-9%,-11%) scale(1.06); }
+}
+@keyframes boomPuffB {
+    0%,10% { opacity:0; transform:translateY(75%) scale(.22); }
+    27% { opacity:1; transform:translateY(0) scale(1.10); }
+    48% { transform:translateY(-5%) scale(1); }
+    84% { opacity:1; }
+    100% { opacity:0; transform:translateY(-13%) scale(1.07); }
+}
+@keyframes boomPuffC {
+    0%,12% { opacity:0; transform:translate(-42%,55%) scale(.28); }
+    28% { opacity:1; transform:translate(0,0) scale(1.08); }
+    48% { transform:translate(5%,-5%) scale(.98); }
+    84% { opacity:1; }
+    100% { opacity:0; transform:translate(9%,-11%) scale(1.06); }
+}
+@keyframes boomPuffD {
+    0%,13% { opacity:0; transform:translateY(42%) scale(.35); }
+    30% { opacity:.92; transform:translateY(0) scale(1.05); }
+    54% { transform:translateY(-4%) scale(.98); }
+    84% { opacity:.94; }
+    100% { opacity:0; transform:translateY(-10%) scale(1.05); }
+}
+@keyframes boomSparkA {
+    0%,10%{opacity:0;transform:translate(45%,20%) scale(.2) rotate(0)}
+    22%{opacity:1;transform:translate(-40%,-20%) scale(1) rotate(55deg)}
+    48%,100%{opacity:0;transform:translate(-180%,-80%) scale(.5) rotate(130deg)}
+}
+@keyframes boomSparkB {
+    0%,10%{opacity:0;transform:translate(-45%,20%) scale(.2) rotate(0)}
+    22%{opacity:1;transform:translate(40%,-20%) scale(1) rotate(-45deg)}
+    48%,100%{opacity:0;transform:translate(180%,-80%) scale(.5) rotate(-120deg)}
+}
+@keyframes boomSparkC {
+    0%,12%{opacity:0;transform:translate(30%,70%) scale(.2) rotate(0)}
+    25%{opacity:.95;transform:translate(-15%,-20%) scale(.85) rotate(45deg)}
+    52%,100%{opacity:0;transform:translate(-90%,-160%) scale(.35) rotate(120deg)}
+}
+@keyframes boomSparkD {
+    0%,12%{opacity:0;transform:translate(-30%,70%) scale(.2) rotate(0)}
+    25%{opacity:.95;transform:translate(15%,-20%) scale(.85) rotate(-45deg)}
+    52%,100%{opacity:0;transform:translate(90%,-160%) scale(.35) rotate(-120deg)}
+}
+
+@media (max-width: 640px) {
+    .sphere-explosion { width: 70%; top: 11%; }
+}
