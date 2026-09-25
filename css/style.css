@@ -2300,6 +2300,60 @@ footer a {
     }
 }
 
+.angel-halo {
+    position: absolute;
+    left: 50%;
+    top: 7.2%;
+    width: min(42%, 200px);
+    aspect-ratio: 2.6 / 1;
+    transform: translate(-50%, -50%) scale(.72) rotateX(58deg);
+    transform-style: preserve-3d;
+    opacity: 0;
+    pointer-events: none;
+    z-index: 6;
+    transition: opacity .28s ease, transform .42s cubic-bezier(.2,.8,.2,1);
+    filter: drop-shadow(0 0 20px rgba(255,255,255,.42)) drop-shadow(0 0 36px rgba(121,250,255,.52));
+}
+
+.angel-halo.is-visible {
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(1) rotateX(62deg);
+    animation: angelHaloFloat 2.5s ease-in-out infinite;
+}
+
+.angel-halo-ring,
+.angel-halo-glow {
+    position: absolute;
+    inset: 0;
+    border-radius: 50%;
+}
+
+.angel-halo-ring {
+    border: 8px solid rgba(225, 253, 255, .98);
+    box-shadow:
+        0 0 10px rgba(255,255,255,.92),
+        0 0 24px rgba(150,244,255,.86),
+        0 0 46px rgba(124,232,255,.72),
+        inset 0 0 10px rgba(255,255,255,.5);
+    background: radial-gradient(circle at 50% 50%, rgba(255,255,255,.14) 0 42%, rgba(255,255,255,0) 60%);
+}
+
+.angel-halo-glow {
+    inset: -12px;
+    background: radial-gradient(ellipse at center, rgba(224,252,255,.30) 0%, rgba(134,242,255,.22) 40%, rgba(134,242,255,0) 72%);
+    filter: blur(10px);
+    opacity: .95;
+}
+
+.sphere-test-shell.is-exploding .angel-halo {
+    opacity: 0 !important;
+}
+
+@keyframes angelHaloFloat {
+    0%, 100% { transform: translate(-50%, -50%) scale(1) rotateX(62deg) translateY(0); }
+    50% { transform: translate(-50%, -50%) scale(1.02) rotateX(62deg) translateY(-6px); }
+}
+
 /* V60 rebase — a explosão agora é 3D e nasce da própria esfera. */
 .sphere-test-shell.is-exploding .sphere-accessory {
     opacity: 0 !important;

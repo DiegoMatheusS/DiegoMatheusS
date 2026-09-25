@@ -3,6 +3,7 @@
     const shell = document.getElementById('sphere-test-shell');
     const scarfEl = document.getElementById('sphere-scarf');
     const accessoryEl = document.getElementById('sphere-accessory');
+    const angelHaloEl = document.getElementById('angel-halo');
     const explosionEl = document.getElementById('sphere-explosion');
     const projectsTrigger = document.getElementById('projects-trigger');
     const stage5Sections = ['trajetoria', 'experiencia', 'habilidades', 'projetos', 'contato']
@@ -148,7 +149,8 @@
                 float y = q.y;
                 float a = x * x + y * y - 1.0;
                 float h = a * a * a - x * x * y * y * y;
-                return 1.0 - smoothstep(-0.055, 0.055, h);
+                // Mais nítido: usa os LEDs normais para desenhar o coração, sem cara de tinta sólida.
+                return 1.0 - smoothstep(-0.016, 0.016, h);
             }
             float starMask(vec2 p, vec2 c, float s) {
                 vec2 q = (p - c) / s;
@@ -351,7 +353,7 @@
                 float browRangeR = 1.0 - smoothstep(browHalfWidth, browHalfWidth + 0.030, abs(p.x - rightBrowCenterX));
                 float browL = lineMask(p.y - browYL, browThickness, browSoftness) * browRangeL * front;
                 float browR = lineMask(p.y - browYR, browThickness, browSoftness) * browRangeR * front;
-                float brows = max(browL, browR);
+                float brows = max(browL, browR) * (1.0 - specialEyeMask);
 
                 // Uma única boca por estado. Estados abertos nunca desenham o sorriso junto.
                 float expressionSum = clamp((wide + squint + winkL + winkR + meh + happy + sleepy + tinyO + laugh + sad + angry + cross + sideEye + kiss + grin + confused + cry + blush + furious + heartEyes + cool + laughTears + tongueFun + nauseous + worried + angel + nerd + thinking + eyeRoll + starEyes + scream + freezing + money + pleading + dizzy + smug + impressed + starJoy + shockBlue + explodeHead), 0.0, 1.0);
@@ -370,7 +372,7 @@
                 float crossOpen = fillEllipse(p, vec2(0.0, -0.268), vec2(0.027 + 0.042 * openAmount, 0.027 + 0.042 * openAmount), 0.040) * front * cross;
                 float laughOpen = fillEllipse(p, vec2(0.0, -0.270), vec2(0.040 + 0.046 * openAmount, 0.040 + 0.046 * openAmount), 0.044) * front * laugh;
                 float tinyOpen = fillEllipse(p, vec2(0.0, -0.262), vec2(0.020 + 0.024 * openAmount, 0.020 + 0.024 * openAmount), 0.040) * front * tinyO;
-                float kissOpen = fillEllipse(p, vec2(0.0, -0.265), vec2(0.019 + 0.022 * openAmount, 0.019 + 0.022 * openAmount), 0.036) * front * kiss;
+                float kissOpen = fillEllipse(p, vec2(0.0, -0.257), vec2(0.032 + 0.032 * openAmount, 0.032 + 0.032 * openAmount), 0.036) * front * kiss;
 
                 float happyHalf = 0.125;
                 float happyCurve = -0.250 - 0.050 * (1.0 - (p.x / happyHalf) * (p.x / happyHalf));
@@ -399,8 +401,7 @@
                 float furiousOpen = fillEllipse(p, vec2(0.0, -0.267), vec2(0.030 + 0.030 * openAmount, 0.030 + 0.030 * openAmount), 0.038) * front * rage;
                 float furiousLine = lineMask(p.y + 0.216 + 0.074 * (1.0 - (p.x / 0.120) * (p.x / 0.120)), 0.011, 0.008) *
                     (1.0 - smoothstep(0.118, 0.142, abs(p.x))) * front * rage * (1.0 - openAmount);
-                float heartLine = lineMask(p.y - (-0.248 - 0.052 * (1.0 - (p.x / 0.122) * (p.x / 0.122))), 0.011, 0.008) *
-                    (1.0 - smoothstep(0.122, 0.144, abs(p.x))) * front * heartEyes * exprEase;
+                float heartLine = 0.0;
                 float coolLine = lineMask(p.y - (-0.247 - 0.040 * (1.0 - (p.x / 0.138) * (p.x / 0.138))), 0.011, 0.008) *
                     (1.0 - smoothstep(0.138, 0.160, abs(p.x))) * front * cool * exprEase;
                 float laughTearsLine = lineMask(p.y - (-0.248 - 0.062 * (1.0 - (p.x / 0.132) * (p.x / 0.132))), 0.011, 0.008) *
@@ -441,7 +442,9 @@
                 float emotionLineMouth = max(max(max(happyLine, sleepyLine), max(sideLine, grinLine)),
                     max(max(max(max(sadLine, angryLine), max(mehLine, confusedLine)), max(max(cryLine, blushLine), max(furiousLine, heartLine))),
                     max(max(max(coolLine, laughTearsLine), max(nauseousLine, angelLine)), max(max(nerdLine, thinkingLine), max(max(eyeRollLine, starLine), max(max(freezeLine, pleadingLine), max(smugLine, starJoyLine)))))));
-                float mouth = max(neutralSmile, max(openMouth, emotionLineMouth * emotionFace));
+                float customMouth = max(openMouth, emotionLineMouth * emotionFace);
+                float mouthOverrideMode = clamp(meh + happy + sleepy + tinyO + laugh + sad + angry + cross + sideEye + kiss + grin + confused + cry + blush + furious + cool + laughTears + tongueFun + nauseous + worried + angel + nerd + thinking + eyeRoll + starEyes + scream + freezing + money + pleading + dizzy + smug + impressed + starJoy + shockBlue + explodeHead, 0.0, 1.0);
+                float mouth = max(neutralSmile * (1.0 - mouthOverrideMode), customMouth);
 
                 float cheekL = fillEllipse(p, vec2(-0.18, -0.02), vec2(0.085, 0.055), 0.035) * front * blush;
                 float cheekR = fillEllipse(p, vec2(0.18, -0.02), vec2(0.085, 0.055), 0.035) * front * blush;
@@ -451,17 +454,15 @@
                 float laughTearL = fillEllipse(p, leftC + vec2(-0.145, -0.095), vec2(0.029, 0.064), 0.030) * front * laughTears * exprEase;
                 float laughTearR = fillEllipse(p, rightC + vec2(0.145, -0.095), vec2(0.029, 0.064), 0.030) * front * laughTears * exprEase;
                 float extraTears = max(max(laughTearL, laughTearR), tears);
-                float heartL = heartMask(p, leftC + vec2(0.0, 0.012), vec2(0.185, 0.195)) * front * heartEyes * exprEase;
-                float heartR = heartMask(p, rightC + vec2(0.0, 0.012), vec2(0.185, 0.195)) * front * heartEyes * exprEase;
+                float heartL = heartMask(p, leftC + vec2(0.0, 0.016), vec2(0.236, 0.246)) * front * heartEyes * exprEase;
+                float heartR = heartMask(p, rightC + vec2(0.0, 0.016), vec2(0.236, 0.246)) * front * heartEyes * exprEase;
                 float glassesL = fillEllipse(p, leftC + vec2(-0.008, 0.002), vec2(0.215, 0.158), 0.030) * front * cool * exprEase;
                 float glassesR = fillEllipse(p, rightC + vec2(0.008, 0.002), vec2(0.215, 0.158), 0.030) * front * cool * exprEase;
                 float glassesBridge = fillEllipse(p, vec2(0.0, 0.180), vec2(0.098, 0.024), 0.030) * front * cool * exprEase;
                 float glassesMask = max(max(glassesL, glassesR), glassesBridge);
                 float tongueMask = fillEllipse(p, vec2(0.0, -0.292), vec2(0.023 + 0.022 * openAmount, 0.028 + 0.026 * openAmount), 0.040) * front * tongueFun * exprEase;
 
-                float haloOuter = fillEllipse(p, vec2(0.0, 0.605), vec2(0.460, 0.102), 0.025) * front * angel * exprEase;
-                float haloInner = fillEllipse(p, vec2(0.0, 0.605), vec2(0.365, 0.052), 0.025) * front * angel * exprEase;
-                float haloMask = max(0.0, haloOuter - haloInner);
+                float haloMask = 0.0;
 
                 float nerdGlassL = fillEllipse(p, leftC, vec2(0.210, 0.176), 0.030) * front * nerd * exprEase;
                 float nerdGlassR = fillEllipse(p, rightC, vec2(0.210, 0.176), 0.030) * front * nerd * exprEase;
@@ -472,10 +473,10 @@
                 nerdFrames = max(nerdFrames, nerdBridge);
 
                 float anyStar = clamp(starEyes + starJoy, 0.0, 1.0);
-                float starEyeBaseL = fillEllipse(p, leftC + vec2(0.0, 0.006), vec2(0.160 + 0.028 * starJoy, 0.170 + 0.034 * starJoy), 0.032) * front * anyStar * exprEase;
-                float starEyeBaseR = fillEllipse(p, rightC + vec2(0.0, 0.006), vec2(0.160 + 0.028 * starJoy, 0.170 + 0.034 * starJoy), 0.032) * front * anyStar * exprEase;
-                float starL = starMask(p, leftC + vec2(0.0, 0.006), 0.190 + 0.035 * starJoy) * front * anyStar * exprEase;
-                float starR = starMask(p, rightC + vec2(0.0, 0.006), 0.190 + 0.035 * starJoy) * front * anyStar * exprEase;
+                float starEyeBaseL = 0.0;
+                float starEyeBaseR = 0.0;
+                float starL = starMask(p, leftC + vec2(0.0, 0.006), 0.218 + 0.045 * starJoy) * front * anyStar * exprEase;
+                float starR = starMask(p, rightC + vec2(0.0, 0.006), 0.218 + 0.045 * starJoy) * front * anyStar * exprEase;
                 float shockEyeL = fillEllipse(p, leftC + vec2(0.0, 0.006), vec2(0.172, 0.206), 0.032) * front * shockBlue * exprEase;
                 float shockEyeR = fillEllipse(p, rightC + vec2(0.0, 0.006), vec2(0.172, 0.206), 0.032) * front * shockBlue * exprEase;
                 float explodeEyeL = fillEllipse(p, leftC + vec2(0.0, 0.004), vec2(0.165, 0.202), 0.032) * front * explodeHead * exprEase;
@@ -509,7 +510,7 @@
                 vec3 mouthBlack = vec3(0.006, 0.006, 0.006);
                 vec3 cheekColor = vec3(1.0, 0.58, 0.63);
                 vec3 tearColor = vec3(0.52, 0.88, 1.0);
-                vec3 heartColor = vec3(0.98, 0.20, 0.42);
+                vec3 heartColor = vec3(1.0, 0.0, 0.02);
                 vec3 glassesColor = vec3(0.03, 0.03, 0.04);
                 vec3 tongueColor = vec3(0.98, 0.48, 0.62);
                 vec3 haloColor = vec3(0.36, 0.88, 1.0);
@@ -524,9 +525,11 @@
                 color = mix(color, eyeWhite, max(max(starEyeBaseL, starEyeBaseR), max(max(shockEyeL, shockEyeR), max(explodeEyeL, explodeEyeR))));
                 color = mix(color, vec3(1.42, 1.42, 1.40), max(explodeEyeL, explodeEyeR));
                 color = mix(color, heartColor, max(heartL, heartR));
+                color = mix(color, vec3(1.16, 0.04, 0.08), max(heartL, heartR) * 0.18);
                 color = mix(color, glassesColor, glassesMask);
                 color = mix(color, haloColor, haloMask);
                 color = mix(color, ink, nerdFrames);
+                color = mix(color, starColor, max(starL, starR) * 0.42);
                 color = mix(color, starDeep, max(starL, starR));
                 color = mix(color, moneyColor, max(moneyEyeL, moneyEyeR));
                 color = mix(color, eyeWhite, dollarMask);
@@ -963,7 +966,7 @@
             { mode: 11, motion: 2, dur: 3100 },
             { mode: 12, motion: 0, dur: 2600 },
             { mode: 13, motion: 7, dur: 2900 },
-            { mode: 14, motion: 8, dur: 2300 },
+            { mode: 14, motion: 8, dur: 2500 },
             { mode: 15, motion: 7, dur: 3000 },
             { mode: 16, motion: 4, dur: 3000 },
             { mode: 17, motion: 5, dur: 3400 },
@@ -988,7 +991,16 @@
             { mode: 36, motion: 7, dur: 2900 },
             { mode: 37, motion: 6, dur: 3500 },
             { mode: 38, motion: 1, dur: 3600 },
-            { mode: 39, motion: 4, dur: 3600 }
+            { mode: 39, motion: 4, dur: 3600 },
+            { mode: 17, motion: 2, dur: 3600 },
+            { mode: 20, motion: 6, dur: 3800 },
+            { mode: 22, motion: 4, dur: 3600 },
+            { mode: 24, motion: 8, dur: 3400 },
+            { mode: 29, motion: 6, dur: 3400 },
+            { mode: 30, motion: 4, dur: 3700 },
+            { mode: 35, motion: 5, dur: 3300 },
+            { mode: 38, motion: 7, dur: 3800 },
+            { mode: 39, motion: 6, dur: 3900 }
         ];
 
         function refillEmotionBag() {
@@ -1017,7 +1029,7 @@
                 case 8: return 0.28;
                 case 9: return 0.92;
                 case 12: return 0.48;
-                case 14: return 0.06;
+                case 14: return 0.14;
                 case 19: return 0.44;
                 case 22: return 0.90;
                 case 23: return 0.62;
@@ -1030,6 +1042,21 @@
                 case 40: return 0.86;
                 default: return 0.0;
             }
+        }
+
+
+        function updateAngelHalo(now) {
+            if (!angelHaloEl) return;
+            const isAngelMode = Math.round(uniforms.uExpression.value) === 26;
+            const active = isAngelMode && (expressionUntil || expressionReleasing || uniforms.uExprProgress.value > 0.03);
+            angelHaloEl.classList.toggle('is-visible', active);
+            if (!active) return;
+
+            const progress = THREE.MathUtils.clamp(uniforms.uExprProgress.value, 0, 1);
+            const bob = Math.sin(now * 0.0024) * 3.0;
+            const scale = 0.90 + progress * 0.16;
+            angelHaloEl.style.opacity = String(Math.min(1, 0.25 + progress * 0.9));
+            angelHaloEl.style.transform = `translate(-50%, calc(-50% + ${bob.toFixed(2)}px)) scale(${scale.toFixed(3)}) rotateX(62deg)`;
         }
 
         function beginExpression(mode, duration = 900) {
@@ -1814,17 +1841,7 @@
                 maintainAccessoryState();
             }
 
-            if (spherePointerInside && stableHoverSince && now - stableHoverSince > 5200 && now > stableHoverCooldownUntil && now > expressionCooldown && !drag.active && !expressionUntil && !expressionReleasing && !pendingExpression && !stage5Sequence.length) {
-                stableHoverCooldownUntil = now + 19000;
-                stableHoverSince = now;
-                const hoverMode = Math.random() < 0.5 ? 14 : 3;
-                setExpression(hoverMode, 2200);
-                if (hoverMode === 14) {
-                    startHeadGesture(2, 2800);
-                } else {
-                    startHeadGesture(1, 3000);
-                }
-            }
+            // Hover parado na esfera não dispara mais emoções.
 
             if (expressionUntil && expressionDuration > 0) {
                 const ep = THREE.MathUtils.clamp((now - expressionStart) / expressionDuration, 0, 1);
@@ -1870,29 +1887,8 @@
             }
 
             frameCounter = (frameCounter + 1) % 3;
-            if (frameCounter === 0 && pointerActive && !drag.active) {
-                raycaster.setFromCamera(pointer, camera);
-                const hit = raycaster.intersectObject(hitSphere, false)[0];
-                if (hit) {
-                    hitLocal.copy(hit.point);
-                    hitSphere.worldToLocal(hitLocal).divideScalar(RADIUS);
-                    targetLook.set(hitLocal.x * 1.65, hitLocal.y * 1.65);
-                    const nearFaceMiddle = Math.abs(hitLocal.x) < 0.18 && hitLocal.y < 0.10 && hitLocal.y > -0.24;
-                    if (nearFaceMiddle) {
-                        if (!faceMiddleHover && now > expressionCooldown && !projectsHover) {
-                            setExpression(12, 700);
-                        }
-                        faceMiddleHover = true;
-                    } else {
-                        faceMiddleHover = false;
-                    }
-                } else {
-                    faceMiddleHover = false;
-                    targetLook.set(pointer.x * 0.72, pointer.y * 0.56);
-                }
-                targetLook.x = THREE.MathUtils.clamp(targetLook.x, -1, 1);
-                targetLook.y = THREE.MathUtils.clamp(targetLook.y, -1, 1);
-            } else if (!pointerActive && !projectsHover) {
+            if (!projectsHover) {
+                faceMiddleHover = false;
                 const idleX = Math.sin(now * 0.00072) * 0.09 + Math.sin(now * 0.00131) * 0.025;
                 const idleY = Math.cos(now * 0.00063) * 0.055;
                 targetLook.set(idleX, idleY);
@@ -1913,7 +1909,7 @@
             headFollowLook.x += (smoothLook.x - headFollowLook.x) * 0.038;
             headFollowLook.y += (smoothLook.y - headFollowLook.y) * 0.038;
 
-            // A esfera agora tem leitura 3D: reage ao cursor e inclina mais durante o arraste.
+            // A esfera mantém vida própria e reações dos botões; o seguir do mouse foi removido.
             const ambientYaw = Math.sin(now * 0.00052) * 0.032;
             const ambientPitch = Math.cos(now * 0.00044) * 0.016;
             const idleTargetY = headFollowLook.x * 0.072 + ambientYaw;
@@ -2023,6 +2019,7 @@
             }
 
             updateExplosion3D(now);
+            updateAngelHalo(now);
             renderer.render(scene, camera);
         }
 
